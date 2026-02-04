@@ -96,22 +96,6 @@
             margin-bottom: 20px;
         }
 
-        .badge-paid {
-            background: var(--success-color);
-            color: white;
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-        }
-
-        .badge-unpaid {
-            background: var(--danger-color);
-            color: white;
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-        }
-
         .sidebar {
             background: var(--primary-color);
             min-height: 100vh;
@@ -197,26 +181,21 @@
             text-decoration: underline;
         }
         
-        /* Currency selector in sidebar */
-        .currency-selector {
-            margin-top: 15px;
-            padding: 0 15px;
+        /* Checkbox styling */
+        .payment-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
         }
         
-        .currency-selector select {
-            background: rgba(255,255,255,0.1);
-            color: white;
-            border: 1px solid rgba(255,255,255,0.3);
+        .paid-label {
+            color: var(--success-color);
+            font-weight: 600;
         }
         
-        .currency-selector select:focus {
-            background: rgba(255,255,255,0.2);
-            color: white;
-            border-color: var(--secondary-color);
-        }
-        
-        .currency-selector option {
-            color: #333;
+        .unpaid-label {
+            color: var(--danger-color);
+            font-weight: 600;
         }
     </style>
 </head>
@@ -226,8 +205,8 @@
         <div class="auth-card">
             <div class="auth-header">
                 <i class="bi bi-shield-check" style="font-size: 3rem;"></i>
-                <h3 class="mt-3">Port Health Office</h3>
-                <p>Management System</p>
+                <h3 class="mt-3">Port Health Desk Tool</h3>
+                <p>Payment Monitoring System</p>
             </div>
             <div class="auth-body">
                 <div id="loginAlert" class="alert alert-danger d-none"></div>
@@ -320,14 +299,6 @@
                 <small class="badge bg-info" id="userRole">Officer</small>
             </div>
             
-            <!-- Currency Selector -->
-            <div class="currency-selector">
-                <select class="form-select form-select-sm" id="currencySelect" onchange="changeCurrency(this.value)">
-                    <option value="USD">USD ($)</option>
-                    <option value="TSH">TSH</option>
-                </select>
-            </div>
-            
             <div class="sidebar-nav">
                 <ul class="nav flex-column">
                     <li class="nav-item">
@@ -343,6 +314,11 @@
                     <li class="nav-item">
                         <a class="nav-link" href="#" onclick="showChandelling()">
                             <i class="bi bi-ship"></i> Ship Chandelling
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showVaccination()">
+                            <i class="bi bi-shield-plus"></i> Vaccination
                         </a>
                     </li>
                     <li class="nav-item">
@@ -375,7 +351,7 @@
 
                 <!-- Quick Stats -->
                 <div class="row">
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <div class="stat-card">
                             <div class="d-flex align-items-center">
                                 <i class="bi bi-truck text-primary" style="font-size: 2rem;"></i>
@@ -386,18 +362,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="stat-card">
-                            <div class="d-flex align-items-center">
-                                <i class="bi bi-exclamation-triangle text-warning" style="font-size: 2rem;"></i>
-                                <div class="ms-3">
-                                    <h3 class="mb-0" id="unpaidConveyance">0</h3>
-                                    <small class="text-muted">Unpaid Conveyances</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <div class="stat-card">
                             <div class="d-flex align-items-center">
                                 <i class="bi bi-ship text-success" style="font-size: 2rem;"></i>
@@ -408,13 +373,13 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <div class="stat-card">
                             <div class="d-flex align-items-center">
-                                <i class="bi bi-currency-dollar text-info" style="font-size: 2rem;"></i>
+                                <i class="bi bi-shield-plus text-info" style="font-size: 2rem;"></i>
                                 <div class="ms-3">
-                                    <h3 class="mb-0" id="totalRevenue">0</h3>
-                                    <small class="text-muted">Today's Revenue</small>
+                                    <h3 class="mb-0" id="totalVaccination">0</h3>
+                                    <small class="text-muted">Vaccination Records</small>
                                 </div>
                             </div>
                         </div>
@@ -444,8 +409,8 @@
                                 </button>
                             </div>
                             <div class="col-md-3 mb-2">
-                                <button class="btn btn-info w-100" onclick="showReportPage()">
-                                    <i class="bi bi-printer"></i> Generate Report
+                                <button class="btn btn-info w-100" onclick="showAddVaccination()">
+                                    <i class="bi bi-plus-circle"></i> Add Vaccination
                                 </button>
                             </div>
                         </div>
@@ -465,7 +430,6 @@
                                         <th>Type</th>
                                         <th>Control No</th>
                                         <th>Description</th>
-                                        <th>Status</th>
                                         <th>Date</th>
                                     </tr>
                                 </thead>
@@ -500,12 +464,6 @@
                     <li class="nav-item">
                         <a class="nav-link" href="#" onclick="filterConveyance('international')">International</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" onclick="filterConveyance('unpaid')">Unpaid</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" onclick="filterConveyance('paid')">Paid History</a>
-                    </li>
                 </ul>
 
                 <div class="table-responsive">
@@ -517,9 +475,9 @@
                                 <th>Type</th>
                                 <th>Conveyance</th>
                                 <th>Company</th>
-                                <th>Amount</th>
-                                <th>Status</th>
-                                <th>Actions</th>
+                                <th>Officer In Charge</th>
+                                <th>Expiry Date</th>
+                                <th>Paid</th>
                             </tr>
                         </thead>
                         <tbody id="conveyanceTable">
@@ -545,12 +503,6 @@
                     <li class="nav-item">
                         <a class="nav-link active" href="#" onclick="filterChandelling('all')">All Records</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" onclick="filterChandelling('unpaid')">Unpaid</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" onclick="filterChandelling('paid')">Paid</a>
-                    </li>
                 </ul>
 
                 <div class="table-responsive">
@@ -561,14 +513,49 @@
                                 <th>Date</th>
                                 <th>Company</th>
                                 <th>Ship Name</th>
-                                <th>Port of Call</th>
-                                <th>Amount</th>
-                                <th>Status</th>
-                                <th>Actions</th>
+                                <th>Officer In Charge</th>
+                                <th>Expiry Date</th>
+                                <th>Paid</th>
                             </tr>
                         </thead>
                         <tbody id="chandellingTable">
                             <!-- Chandelling data will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Vaccination Page -->
+            <div id="vaccinationPage" class="d-none">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2 class="text-primary">
+                        <i class="bi bi-shield-plus"></i> Vaccination Records
+                    </h2>
+                    <button class="btn btn-primary" onclick="showAddVaccination()">
+                        <i class="bi bi-plus-circle"></i> Add New
+                    </button>
+                </div>
+
+                <!-- Tabs -->
+                <ul class="nav nav-tabs mb-3" id="vaccinationTabs">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#" onclick="filterVaccination('all')">All Records</a>
+                    </li>
+                </ul>
+
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Control No</th>
+                                <th>Officer In Charge</th>
+                                <th>Expiry Date</th>
+                                <th>Date Provided</th>
+                                <th>Paid</th>
+                            </tr>
+                        </thead>
+                        <tbody id="vaccinationTable">
+                            <!-- Vaccination data will be loaded here -->
                         </tbody>
                     </table>
                 </div>
@@ -629,8 +616,7 @@
                                             <option value="all">All Records</option>
                                             <option value="conveyance">Conveyance Only</option>
                                             <option value="chandelling">Ship Chandelling Only</option>
-                                            <option value="paid">Paid Records Only</option>
-                                            <option value="unpaid">Unpaid Records Only</option>
+                                            <option value="vaccination">Vaccination Only</option>
                                         </select>
                                     </div>
 
@@ -711,30 +697,17 @@
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Registration Number</label>
-                                <input type="text" class="form-control" id="regNo" placeholder="Enter registration number">
-                            </div>
-                            <div class="col-md-6 mb-3">
                                 <label class="form-label">Company Name</label>
                                 <input type="text" class="form-control" id="companyName" placeholder="Enter company name">
                             </div>
-                        </div>
-                        <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Origin</label>
-                                <input type="text" class="form-control" id="origin" placeholder="Enter origin">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Destination</label>
-                                <input type="text" class="form-control" id="destination" placeholder="Enter destination">
+                                <label class="form-label">Officer In Charge</label>
+                                <input type="text" class="form-control" id="officerInCharge" placeholder="Enter officer name">
                             </div>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Amount <span class="text-danger">*</span></label>
-                            <div class="input-group">
-                                <span class="input-group-text" id="convCurrencySymbol">$</span>
-                                <input type="number" class="form-control" id="convAmount" step="0.01" placeholder="Enter amount" required>
-                            </div>
+                            <label class="form-label">Expiry Date</label>
+                            <input type="date" class="form-control" id="expiryDate">
                         </div>
                     </form>
                 </div>
@@ -780,19 +753,12 @@
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Port of Call</label>
-                                <input type="text" class="form-control" id="portOfCall" placeholder="Enter port of call">
+                                <label class="form-label">Officer In Charge</label>
+                                <input type="text" class="form-control" id="chanOfficerInCharge" placeholder="Enter officer name">
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Services Provided</label>
-                                <input type="text" class="form-control" id="services" placeholder="Enter services provided">
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Amount <span class="text-danger">*</span></label>
-                            <div class="input-group">
-                                <span class="input-group-text" id="chanCurrencySymbol">$</span>
-                                <input type="number" class="form-control" id="chanAmount" step="0.01" placeholder="Enter amount" required>
+                                <label class="form-label">Expiry Date</label>
+                                <input type="date" class="form-control" id="chanExpiryDate">
                             </div>
                         </div>
                     </form>
@@ -800,6 +766,47 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-success" onclick="saveChandelling()">Save Record</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Vaccination Modal -->
+    <div class="modal fade" id="addVaccinationModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Vaccination Record</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="vaccinationAlert" class="alert alert-danger d-none"></div>
+                    <form id="vaccinationForm">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Control Number <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="vacControlNo" placeholder="Enter control number" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Officer In Charge <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="vacOfficer" placeholder="Enter officer name" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Expiry Date <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="vacExpiry" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Date Provided <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="vacDate" required>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveVaccination()">Save Record</button>
                 </div>
             </div>
         </div>
@@ -824,8 +831,6 @@
         let currentUser = null;
         let currentView = 'dashboard';
         let isFirebaseInitialized = false;
-        let currentCurrency = localStorage.getItem('currency') || 'USD';
-        const exchangeRate = 2300; // 1 USD = 2300 TSH
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
@@ -837,10 +842,8 @@
             document.getElementById('reportMonth').value = today.slice(0, 7);
             document.getElementById('startDate').value = today;
             document.getElementById('endDate').value = today;
-            
-            // Set currency selector
-            document.getElementById('currencySelect').value = currentCurrency;
-            updateCurrencySymbols();
+            document.getElementById('vacDate').value = today;
+            document.getElementById('vacExpiry').value = today;
             
             // Initialize Firebase with hardcoded config
             initializeFirebase(firebaseConfig);
@@ -881,49 +884,6 @@
                 showLogin();
                 document.getElementById('loginAlert').textContent = 'Firebase initialization failed. Please check console for details.';
                 document.getElementById('loginAlert').classList.remove('d-none');
-            }
-        }
-
-        // Currency Functions
-        function changeCurrency(currency) {
-            currentCurrency = currency;
-            localStorage.setItem('currency', currency);
-            updateCurrencySymbols();
-            
-            // Refresh current view
-            if (currentView === 'dashboard') {
-                loadDashboard();
-            } else if (currentView === 'conveyance') {
-                filterConveyance('all');
-            } else if (currentView === 'chandelling') {
-                filterChandelling('all');
-            } else if (currentView === 'report') {
-                generateReport();
-            }
-        }
-
-        function updateCurrencySymbols() {
-            const symbol = currentCurrency === 'USD' ? '$' : 'TSH ';
-            document.getElementById('convCurrencySymbol').textContent = symbol;
-            document.getElementById('chanCurrencySymbol').textContent = symbol;
-        }
-
-        function formatAmount(amount) {
-            if (currentCurrency === 'USD') {
-                return `$${parseFloat(amount).toFixed(2)}`;
-            } else {
-                // Convert to TSH
-                const tshAmount = parseFloat(amount) * exchangeRate;
-                return `${tshAmount.toFixed(0)} TSH`;
-            }
-        }
-
-        function getAmountInUSD(amount) {
-            if (currentCurrency === 'USD') {
-                return parseFloat(amount);
-            } else {
-                // Convert from TSH to USD
-                return parseFloat(amount) / exchangeRate;
             }
         }
 
@@ -1097,6 +1057,15 @@
             });
         }
 
+        function showVaccination() {
+            hideAllPages();
+            document.getElementById('vaccinationPage').classList.remove('d-none');
+            currentView = 'vaccination';
+            
+            const tabState = getTabState('vaccination') || 'all';
+            filterVaccination(tabState);
+        }
+
         function showReportPage() {
             hideAllPages();
             document.getElementById('reportPage').classList.remove('d-none');
@@ -1108,6 +1077,7 @@
             document.getElementById('dashboardPage').classList.add('d-none');
             document.getElementById('conveyancePage').classList.add('d-none');
             document.getElementById('chandellingPage').classList.add('d-none');
+            document.getElementById('vaccinationPage').classList.add('d-none');
             document.getElementById('reportPage').classList.add('d-none');
         }
 
@@ -1128,11 +1098,19 @@
                 const userDoc = await db.collection('users').doc(currentUser.uid).get();
                 if (userDoc.exists) {
                     const userData = userDoc.data();
-                    document.getElementById('userName').textContent = userData.name;
+                    // Display user email as the user name
+                    document.getElementById('userName').textContent = userData.email || currentUser.email;
                     document.getElementById('userRole').textContent = userData.role;
+                } else {
+                    // If no user document, use email
+                    document.getElementById('userName').textContent = currentUser.email;
+                    document.getElementById('userRole').textContent = 'Officer';
                 }
             } catch (error) {
                 console.error('Error loading user data:', error);
+                // Fallback to email
+                document.getElementById('userName').textContent = currentUser.email;
+                document.getElementById('userRole').textContent = 'Officer';
             }
         }
 
@@ -1140,47 +1118,17 @@
             if (!currentUser) return;
             
             try {
-                // Get today's date
-                const today = new Date();
-                const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                // Load all conveyances
+                const conveyanceSnapshot = await db.collection('conveyances').get();
+                document.getElementById('totalConveyance').textContent = conveyanceSnapshot.size;
                 
-                // Load conveyance stats
-                const conveyanceSnapshot = await db.collection('conveyances')
-                    .where('createdAt', '>=', startOfDay)
-                    .get();
+                // Load all chandelling
+                const chandellingSnapshot = await db.collection('chandelling').get();
+                document.getElementById('totalChandelling').textContent = chandellingSnapshot.size;
                 
-                let totalConveyance = 0;
-                let unpaidConveyance = 0;
-                let totalRevenue = 0;
-                
-                conveyanceSnapshot.forEach(doc => {
-                    totalConveyance++;
-                    const data = doc.data();
-                    if (data.paymentStatus === 'unpaid') {
-                        unpaidConveyance++;
-                    } else if (data.paymentStatus === 'paid') {
-                        totalRevenue += parseFloat(data.amount || 0);
-                    }
-                });
-                
-                // Load chandelling stats
-                const chandellingSnapshot = await db.collection('chandelling')
-                    .where('createdAt', '>=', startOfDay)
-                    .get();
-                
-                const totalChandelling = chandellingSnapshot.size;
-                chandellingSnapshot.forEach(doc => {
-                    const data = doc.data();
-                    if (data.paymentStatus === 'paid') {
-                        totalRevenue += parseFloat(data.amount || 0);
-                    }
-                });
-                
-                // Update UI with formatted amounts
-                document.getElementById('totalConveyance').textContent = totalConveyance;
-                document.getElementById('unpaidConveyance').textContent = unpaidConveyance;
-                document.getElementById('totalChandelling').textContent = totalChandelling;
-                document.getElementById('totalRevenue').textContent = formatAmount(totalRevenue);
+                // Load all vaccination
+                const vaccinationSnapshot = await db.collection('vaccination').get();
+                document.getElementById('totalVaccination').textContent = vaccinationSnapshot.size;
                 
                 // Load recent activity
                 loadRecentActivity();
@@ -1207,7 +1155,7 @@
                     const data = doc.data();
                     const row = createActivityRow('Conveyance', data.controlNo, 
                         `${data.convName} - ${data.convType}`, 
-                        data.paymentStatus, data.inspectionDate);
+                        data.inspectionDate);
                     activityTable.appendChild(row);
                 });
                 
@@ -1221,7 +1169,21 @@
                     const data = doc.data();
                     const row = createActivityRow('Chandelling', data.controlNo,
                         `${data.company} - ${data.shipName}`,
-                        data.paymentStatus, data.date);
+                        data.date);
+                    activityTable.appendChild(row);
+                });
+                
+                // Get recent vaccination
+                const vacSnapshot = await db.collection('vaccination')
+                    .orderBy('createdAt', 'desc')
+                    .limit(5)
+                    .get();
+                
+                vacSnapshot.forEach(doc => {
+                    const data = doc.data();
+                    const row = createActivityRow('Vaccination', data.controlNo,
+                        `${data.officerInCharge}`,
+                        data.dateProvided);
                     activityTable.appendChild(row);
                 });
                 
@@ -1230,17 +1192,13 @@
             }
         }
 
-        function createActivityRow(type, controlNo, description, status, date) {
+        function createActivityRow(type, controlNo, description, date) {
             const row = document.createElement('tr');
-            const statusBadge = status === 'paid' ? 
-                `<span class="badge-paid">Paid</span>` : 
-                `<span class="badge-unpaid">Unpaid</span>`;
             
             row.innerHTML = `
                 <td><strong>${type}</strong></td>
                 <td>${controlNo || 'N/A'}</td>
                 <td>${description}</td>
-                <td>${statusBadge}</td>
                 <td>${date ? new Date(date).toLocaleDateString() : 'N/A'}</td>
             `;
             return row;
@@ -1269,17 +1227,12 @@
             const convType = document.getElementById('convType').value;
             const inspectionDate = document.getElementById('convDate').value;
             const convName = document.getElementById('convName').value.trim();
-            const regNo = document.getElementById('regNo').value.trim();
             const companyName = document.getElementById('companyName').value.trim();
-            const origin = document.getElementById('origin').value.trim();
-            const destination = document.getElementById('destination').value.trim();
-            const amountInput = document.getElementById('convAmount').value;
-            
-            // Convert amount to USD for storage
-            const amount = currentCurrency === 'USD' ? parseFloat(amountInput) : parseFloat(amountInput) / exchangeRate;
+            const officerInCharge = document.getElementById('officerInCharge').value.trim();
+            const expiryDate = document.getElementById('expiryDate').value;
             
             // Validation
-            if (!controlNo || !convType || !inspectionDate || !convName || !amountInput) {
+            if (!controlNo || !convType || !inspectionDate || !convName) {
                 showAlert('conveyanceAlert', 'Please fill in all required fields (*)');
                 return;
             }
@@ -1299,12 +1252,10 @@
                 convType: convType,
                 inspectionDate: inspectionDate,
                 convName: convName,
-                regNo: regNo || '',
                 companyName: companyName || '',
-                origin: origin || '',
-                destination: destination || '',
-                amount: amount, // Store in USD
-                paymentStatus: 'unpaid',
+                officerInCharge: officerInCharge || '',
+                expiryDate: expiryDate || '',
+                paymentStatus: 'unpaid', // Default to unpaid
                 createdBy: currentUser.uid,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -1314,7 +1265,9 @@
                 await db.collection('conveyances').add(formData);
                 bootstrap.Modal.getInstance(document.getElementById('addConveyanceModal')).hide();
                 alert('Conveyance record saved successfully!');
+                // Refresh dashboard and recent activity
                 loadDashboard();
+                loadRecentActivity();
                 if (currentView === 'conveyance') filterConveyance('all');
             } catch (error) {
                 showAlert('conveyanceAlert', 'Error saving record: ' + error.message);
@@ -1333,12 +1286,6 @@
                         break;
                     case 'international':
                         query = query.where('convType', '==', 'international');
-                        break;
-                    case 'unpaid':
-                        query = query.where('paymentStatus', '==', 'unpaid');
-                        break;
-                    case 'paid':
-                        query = query.where('paymentStatus', '==', 'paid');
                         break;
                 }
                 
@@ -1371,16 +1318,7 @@
             snapshot.forEach(doc => {
                 const data = doc.data();
                 const row = document.createElement('tr');
-                const statusBadge = data.paymentStatus === 'paid' ? 
-                    `<span class="badge-paid">Paid</span>` : 
-                    `<span class="badge-unpaid">Unpaid</span>`;
-                
-                // SIMPLE ONE-CLICK "MARK PAID" BUTTON - NO MODAL, NO EXTRA FIELDS
-                const actions = data.paymentStatus === 'unpaid' ? 
-                    `<button class="btn btn-sm btn-success" onclick="markAsPaid('conveyance', '${doc.id}')">
-                        <i class="bi bi-check-circle"></i> Mark Paid
-                    </button>` : 
-                    `<span class="text-muted">Already Paid</span>`;
+                const isPaid = data.paymentStatus === 'paid';
                 
                 row.innerHTML = `
                     <td><strong>${data.controlNo}</strong></td>
@@ -1390,57 +1328,54 @@
                     </span></td>
                     <td>${data.convName}</td>
                     <td>${data.companyName || 'N/A'}</td>
-                    <td>${formatAmount(data.amount)}</td>
-                    <td>${statusBadge}</td>
-                    <td>${actions}</td>
+                    <td>${data.officerInCharge || 'N/A'}</td>
+                    <td>${data.expiryDate || 'N/A'}</td>
+                    <td>
+                        <input type="checkbox" class="payment-checkbox" ${isPaid ? 'checked' : ''} 
+                               onchange="togglePaymentStatus('conveyance', '${doc.id}', this.checked)"
+                               title="${isPaid ? 'Mark as unpaid' : 'Mark as paid'}">
+                        <span class="${isPaid ? 'paid-label' : 'unpaid-label'} ms-2">
+                            ${isPaid ? 'Paid' : 'Unpaid'}
+                        </span>
+                    </td>
                 `;
                 tableBody.appendChild(row);
             });
         }
 
-        // SIMPLE ONE-CLICK "MARK AS PAID" FUNCTION
-        async function markAsPaid(type, id) {
+        // Checkbox toggle function for payment status
+        async function togglePaymentStatus(type, id, isChecked) {
             if (!currentUser) return;
             
-            if (!confirm('Are you sure you want to mark this as paid?')) {
-                return;
-            }
-            
             try {
-                // SIMPLE UPDATE: ONLY change paymentStatus to 'paid' and add paymentDate
+                const paymentStatus = isChecked ? 'paid' : 'unpaid';
                 const paymentData = {
-                    paymentStatus: 'paid',
-                    paymentDate: new Date().toISOString().split('T')[0], // Today's date
-                    paidBy: currentUser.uid,
-                    paidAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    paymentStatus: paymentStatus,
+                    paymentDate: isChecked ? new Date().toISOString().split('T')[0] : '',
+                    paidBy: isChecked ? currentUser.uid : '',
+                    paidAt: isChecked ? firebase.firestore.FieldValue.serverTimestamp() : null,
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 };
                 
-                // Update the record - ONLY these fields, nothing else
+                let docRef;
                 if (type === 'conveyance') {
-                    await db.collection('conveyances').doc(id).update(paymentData);
+                    docRef = db.collection('conveyances').doc(id);
                 } else if (type === 'chandelling') {
-                    await db.collection('chandelling').doc(id).update(paymentData);
+                    docRef = db.collection('chandelling').doc(id);
+                } else if (type === 'vaccination') {
+                    docRef = db.collection('vaccination').doc(id);
                 }
                 
-                // Create payment history record
-                await db.collection('paymentHistory').add({
-                    recordId: id,
-                    recordType: type,
-                    paymentDate: new Date().toISOString().split('T')[0],
-                    paymentMethod: 'cash', // Default to cash
-                    processedBy: currentUser.uid,
-                    processedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
+                await docRef.update(paymentData);
                 
-                alert('Marked as paid successfully!');
+                // Refresh the current view
+                if (currentView === 'conveyance') filterConveyance('all');
+                else if (currentView === 'chandelling') filterChandelling('all');
+                else if (currentView === 'vaccination') filterVaccination('all');
                 
-                // Refresh current view
-                if (currentView === 'conveyance') filterConveyance('unpaid');
-                else if (currentView === 'chandelling') filterChandelling('unpaid');
-                loadDashboard();
             } catch (error) {
-                alert('Error marking as paid: ' + error.message);
+                console.error('Error updating payment status:', error);
+                alert('Error updating payment status. Please try again.');
             }
         }
 
@@ -1463,15 +1398,11 @@
             const date = document.getElementById('chanDate').value;
             const company = document.getElementById('chanCompany').value.trim();
             const shipName = document.getElementById('shipName').value.trim();
-            const portOfCall = document.getElementById('portOfCall').value.trim();
-            const services = document.getElementById('services').value.trim();
-            const amountInput = document.getElementById('chanAmount').value;
-            
-            // Convert amount to USD for storage
-            const amount = currentCurrency === 'USD' ? parseFloat(amountInput) : parseFloat(amountInput) / exchangeRate;
+            const officerInCharge = document.getElementById('chanOfficerInCharge').value.trim();
+            const expiryDate = document.getElementById('chanExpiryDate').value;
             
             // Validation
-            if (!controlNo || !date || !company || !shipName || !amountInput) {
+            if (!controlNo || !date || !company || !shipName) {
                 showAlert('chandellingAlert', 'Please fill in all required fields (*)');
                 return;
             }
@@ -1491,10 +1422,9 @@
                 date: date,
                 company: company,
                 shipName: shipName,
-                portOfCall: portOfCall || '',
-                services: services || '',
-                amount: amount, // Store in USD
-                paymentStatus: 'unpaid',
+                officerInCharge: officerInCharge || '',
+                expiryDate: expiryDate || '',
+                paymentStatus: 'unpaid', // Default to unpaid
                 createdBy: currentUser.uid,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -1504,7 +1434,9 @@
                 await db.collection('chandelling').add(formData);
                 bootstrap.Modal.getInstance(document.getElementById('addChandellingModal')).hide();
                 alert('Chandelling record saved successfully!');
+                // Refresh dashboard and recent activity
                 loadDashboard();
+                loadRecentActivity();
                 if (currentView === 'chandelling') filterChandelling('all');
             } catch (error) {
                 showAlert('chandellingAlert', 'Error saving record: ' + error.message);
@@ -1516,12 +1448,6 @@
             
             try {
                 let query = db.collection('chandelling');
-                
-                if (filter === 'unpaid') {
-                    query = query.where('paymentStatus', '==', 'unpaid');
-                } else if (filter === 'paid') {
-                    query = query.where('paymentStatus', '==', 'paid');
-                }
                 
                 const snapshot = await query.orderBy('createdAt', 'desc').get();
                 renderChandellingTable(snapshot);
@@ -1540,7 +1466,7 @@
             if (snapshot.empty) {
                 tableBody.innerHTML = `
                     <tr>
-                        <td colspan="8" class="text-center py-4">
+                        <td colspan="7" class="text-center py-4">
                             <i class="bi bi-inbox" style="font-size: 2rem; color: #ddd;"></i>
                             <p class="text-muted mt-2">No records found</p>
                         </td>
@@ -1552,26 +1478,138 @@
             snapshot.forEach(doc => {
                 const data = doc.data();
                 const row = document.createElement('tr');
-                const statusBadge = data.paymentStatus === 'paid' ? 
-                    `<span class="badge-paid">Paid</span>` : 
-                    `<span class="badge-unpaid">Unpaid</span>`;
-                
-                // SIMPLE ONE-CLICK "MARK PAID" BUTTON - NO MODAL, NO EXTRA FIELDS
-                const actions = data.paymentStatus === 'unpaid' ? 
-                    `<button class="btn btn-sm btn-success" onclick="markAsPaid('chandelling', '${doc.id}')">
-                        <i class="bi bi-check-circle"></i> Mark Paid
-                    </button>` : 
-                    `<span class="text-muted">Already Paid</span>`;
+                const isPaid = data.paymentStatus === 'paid';
                 
                 row.innerHTML = `
                     <td><strong>${data.controlNo}</strong></td>
                     <td>${data.date ? new Date(data.date).toLocaleDateString() : 'N/A'}</td>
                     <td>${data.company}</td>
                     <td>${data.shipName}</td>
-                    <td>${data.portOfCall || 'N/A'}</td>
-                    <td>${formatAmount(data.amount)}</td>
-                    <td>${statusBadge}</td>
-                    <td>${actions}</td>
+                    <td>${data.officerInCharge || 'N/A'}</td>
+                    <td>${data.expiryDate || 'N/A'}</td>
+                    <td>
+                        <input type="checkbox" class="payment-checkbox" ${isPaid ? 'checked' : ''} 
+                               onchange="togglePaymentStatus('chandelling', '${doc.id}', this.checked)"
+                               title="${isPaid ? 'Mark as unpaid' : 'Mark as paid'}">
+                        <span class="${isPaid ? 'paid-label' : 'unpaid-label'} ms-2">
+                            ${isPaid ? 'Paid' : 'Unpaid'}
+                        </span>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Vaccination Functions
+        function showAddVaccination() {
+            const modal = new bootstrap.Modal(document.getElementById('addVaccinationModal'));
+            document.getElementById('vaccinationForm').reset();
+            hideAlert('vaccinationAlert');
+            
+            // Set default dates
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('vacDate').value = today;
+            document.getElementById('vacExpiry').value = today;
+            
+            modal.show();
+        }
+
+        async function saveVaccination() {
+            if (!currentUser) return;
+            
+            const controlNo = document.getElementById('vacControlNo').value.trim();
+            const officer = document.getElementById('vacOfficer').value.trim();
+            const expiryDate = document.getElementById('vacExpiry').value;
+            const dateProvided = document.getElementById('vacDate').value;
+            
+            if (!controlNo || !officer || !expiryDate || !dateProvided) {
+                showAlert('vaccinationAlert', 'Please fill in all required fields (*)');
+                return;
+            }
+            
+            // Check if control number already exists
+            const existing = await db.collection('vaccination')
+                .where('controlNo', '==', controlNo)
+                .get();
+            
+            if (!existing.empty) {
+                showAlert('vaccinationAlert', 'This control number already exists.');
+                return;
+            }
+            
+            const formData = {
+                controlNo: controlNo,
+                officerInCharge: officer,
+                expiryDate: expiryDate,
+                dateProvided: dateProvided,
+                paymentStatus: 'unpaid', // Default to unpaid
+                createdBy: currentUser.uid,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            
+            try {
+                await db.collection('vaccination').add(formData);
+                bootstrap.Modal.getInstance(document.getElementById('addVaccinationModal')).hide();
+                alert('Vaccination record saved successfully!');
+                // Refresh dashboard and recent activity
+                loadDashboard();
+                loadRecentActivity();
+                if (currentView === 'vaccination') filterVaccination('all');
+            } catch (error) {
+                showAlert('vaccinationAlert', 'Error saving record: ' + error.message);
+            }
+        }
+
+        async function filterVaccination(filter) {
+            if (!currentUser) return;
+            
+            try {
+                let query = db.collection('vaccination');
+                
+                const snapshot = await query.orderBy('createdAt', 'desc').get();
+                renderVaccinationTable(snapshot);
+                
+                storeTabState('vaccination', filter);
+            } catch (error) {
+                console.error('Error filtering vaccination:', error);
+            }
+        }
+
+        function renderVaccinationTable(snapshot) {
+            const tableBody = document.getElementById('vaccinationTable');
+            tableBody.innerHTML = '';
+            
+            if (snapshot.empty) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center py-4">
+                            <i class="bi bi-inbox" style="font-size: 2rem; color: #ddd;"></i>
+                            <p class="text-muted mt-2">No records found</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                const row = document.createElement('tr');
+                const isPaid = data.paymentStatus === 'paid';
+                
+                row.innerHTML = `
+                    <td><strong>${data.controlNo}</strong></td>
+                    <td>${data.officerInCharge}</td>
+                    <td>${data.expiryDate || 'N/A'}</td>
+                    <td>${data.dateProvided ? new Date(data.dateProvided).toLocaleDateString() : 'N/A'}</td>
+                    <td>
+                        <input type="checkbox" class="payment-checkbox" ${isPaid ? 'checked' : ''} 
+                               onchange="togglePaymentStatus('vaccination', '${doc.id}', this.checked)"
+                               title="${isPaid ? 'Mark as unpaid' : 'Mark as paid'}">
+                        <span class="${isPaid ? 'paid-label' : 'unpaid-label'} ms-2">
+                            ${isPaid ? 'Paid' : 'Unpaid'}
+                        </span>
+                    </td>
                 `;
                 tableBody.appendChild(row);
             });
@@ -1580,12 +1618,6 @@
         // Report Functions
         function setupReportForm() {
             const reportType = document.getElementById('reportType');
-            const today = new Date().toISOString().split('T')[0];
-            
-            // Set default dates
-            document.getElementById('reportDate').value = today;
-            document.getElementById('startDate').value = today;
-            document.getElementById('endDate').value = today;
             
             reportType.addEventListener('change', function() {
                 document.getElementById('dailyDate').classList.add('d-none');
@@ -1641,19 +1673,14 @@
                 // Fetch data based on selection
                 let conveyances = [];
                 let chandelling = [];
+                let vaccination = [];
                 
-                if (reportFor === 'all' || reportFor === 'conveyance' || reportFor === 'paid' || reportFor === 'unpaid') {
+                if (reportFor === 'all' || reportFor === 'conveyance') {
                     let convQuery = db.collection('conveyances');
                     
                     // Apply date filter
-                    convQuery = convQuery.where('inspectionDate', '>=', startDate.toISOString().split('T')[0])
-                                         .where('inspectionDate', '<=', endDate.toISOString().split('T')[0]);
-                    
-                    if (reportFor === 'paid') {
-                        convQuery = convQuery.where('paymentStatus', '==', 'paid');
-                    } else if (reportFor === 'unpaid') {
-                        convQuery = convQuery.where('paymentStatus', '==', 'unpaid');
-                    }
+                    convQuery = convQuery.where('createdAt', '>=', startDate)
+                                         .where('createdAt', '<=', endDate);
                     
                     const convSnapshot = await convQuery.get();
                     convSnapshot.forEach(doc => {
@@ -1661,18 +1688,12 @@
                     });
                 }
                 
-                if (reportFor === 'all' || reportFor === 'chandelling' || reportFor === 'paid' || reportFor === 'unpaid') {
+                if (reportFor === 'all' || reportFor === 'chandelling') {
                     let chanQuery = db.collection('chandelling');
                     
                     // Apply date filter
-                    chanQuery = chanQuery.where('date', '>=', startDate.toISOString().split('T')[0])
-                                         .where('date', '<=', endDate.toISOString().split('T')[0]);
-                    
-                    if (reportFor === 'paid') {
-                        chanQuery = chanQuery.where('paymentStatus', '==', 'paid');
-                    } else if (reportFor === 'unpaid') {
-                        chanQuery = chanQuery.where('paymentStatus', '==', 'unpaid');
-                    }
+                    chanQuery = chanQuery.where('createdAt', '>=', startDate)
+                                         .where('createdAt', '<=', endDate);
                     
                     const chanSnapshot = await chanQuery.get();
                     chanSnapshot.forEach(doc => {
@@ -1680,10 +1701,23 @@
                     });
                 }
                 
+                if (reportFor === 'all' || reportFor === 'vaccination') {
+                    let vacQuery = db.collection('vaccination');
+                    
+                    // Apply date filter
+                    vacQuery = vacQuery.where('createdAt', '>=', startDate)
+                                       .where('createdAt', '<=', endDate);
+                    
+                    const vacSnapshot = await vacQuery.get();
+                    vacSnapshot.forEach(doc => {
+                        vaccination.push({ id: doc.id, ...doc.data() });
+                    });
+                }
+                
                 // Generate report content
                 let reportHTML = `
                     <h4 class="text-primary">${reportTitle}</h4>
-                    <p class="text-muted">Generated on ${new Date().toLocaleString()} | Currency: ${currentCurrency}</p>
+                    <p class="text-muted">Generated on ${new Date().toLocaleString()}</p>
                     <hr>
                 `;
                 
@@ -1698,32 +1732,26 @@
                                         <th>Date</th>
                                         <th>Type</th>
                                         <th>Conveyance</th>
-                                        <th>Amount</th>
-                                        <th>Status</th>
+                                        <th>Company</th>
+                                        <th>Officer In Charge</th>
+                                        <th>Expiry Date</th>
+                                        <th>Payment Status</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                     `;
                     
-                    let totalConvAmount = 0;
-                    let paidConvCount = 0;
-                    let unpaidConvCount = 0;
-                    
                     conveyances.forEach(conv => {
-                        totalConvAmount += parseFloat(conv.amount || 0);
-                        if (conv.paymentStatus === 'paid') paidConvCount++;
-                        else unpaidConvCount++;
-                        
                         reportHTML += `
                             <tr>
                                 <td>${conv.controlNo}</td>
                                 <td>${conv.inspectionDate ? new Date(conv.inspectionDate).toLocaleDateString() : 'N/A'}</td>
                                 <td>${conv.convType}</td>
                                 <td>${conv.convName}</td>
-                                <td>${formatAmount(conv.amount)}</td>
-                                <td>${conv.paymentStatus === 'paid' ? 
-                                    '<span class="badge-paid">Paid</span>' : 
-                                    '<span class="badge-unpaid">Unpaid</span>'}</td>
+                                <td>${conv.companyName || 'N/A'}</td>
+                                <td>${conv.officerInCharge || 'N/A'}</td>
+                                <td>${conv.expiryDate || 'N/A'}</td>
+                                <td>${conv.paymentStatus === 'paid' ? '<span class="paid-label">Paid</span>' : '<span class="unpaid-label">Unpaid</span>'}</td>
                             </tr>
                         `;
                     });
@@ -1732,12 +1760,8 @@
                                 </tbody>
                                 <tfoot>
                                     <tr class="table-light">
-                                        <td colspan="3"><strong>Summary:</strong></td>
-                                        <td><strong>Total: ${conveyances.length}</strong><br>
-                                            Paid: ${paidConvCount}<br>
-                                            Unpaid: ${unpaidConvCount}</td>
-                                        <td><strong>${formatAmount(totalConvAmount)}</strong></td>
-                                        <td></td>
+                                        <td colspan="7"><strong>Total Conveyances:</strong></td>
+                                        <td><strong>${conveyances.length}</strong></td>
                                     </tr>
                                 </tfoot>
                             </table>
@@ -1756,32 +1780,24 @@
                                         <th>Date</th>
                                         <th>Company</th>
                                         <th>Ship Name</th>
-                                        <th>Amount</th>
-                                        <th>Status</th>
+                                        <th>Officer In Charge</th>
+                                        <th>Expiry Date</th>
+                                        <th>Payment Status</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                     `;
                     
-                    let totalChanAmount = 0;
-                    let paidChanCount = 0;
-                    let unpaidChanCount = 0;
-                    
                     chandelling.forEach(chan => {
-                        totalChanAmount += parseFloat(chan.amount || 0);
-                        if (chan.paymentStatus === 'paid') paidChanCount++;
-                        else unpaidChanCount++;
-                        
                         reportHTML += `
                             <tr>
                                 <td>${chan.controlNo}</td>
                                 <td>${chan.date ? new Date(chan.date).toLocaleDateString() : 'N/A'}</td>
                                 <td>${chan.company}</td>
                                 <td>${chan.shipName}</td>
-                                <td>${formatAmount(chan.amount)}</td>
-                                <td>${chan.paymentStatus === 'paid' ? 
-                                    '<span class="badge-paid">Paid</span>' : 
-                                    '<span class="badge-unpaid">Unpaid</span>'}</td>
+                                <td>${chan.officerInCharge || 'N/A'}</td>
+                                <td>${chan.expiryDate || 'N/A'}</td>
+                                <td>${chan.paymentStatus === 'paid' ? '<span class="paid-label">Paid</span>' : '<span class="unpaid-label">Unpaid</span>'}</td>
                             </tr>
                         `;
                     });
@@ -1790,12 +1806,8 @@
                                 </tbody>
                                 <tfoot>
                                     <tr class="table-light">
-                                        <td colspan="3"><strong>Summary:</strong></td>
-                                        <td><strong>Total: ${chandelling.length}</strong><br>
-                                            Paid: ${paidChanCount}<br>
-                                            Unpaid: ${unpaidChanCount}</td>
-                                        <td><strong>${formatAmount(totalChanAmount)}</strong></td>
-                                        <td></td>
+                                        <td colspan="6"><strong>Total Chandelling:</strong></td>
+                                        <td><strong>${chandelling.length}</strong></td>
                                     </tr>
                                 </tfoot>
                             </table>
@@ -1803,7 +1815,49 @@
                     `;
                 }
                 
-                if (conveyances.length === 0 && chandelling.length === 0) {
+                if (vaccination.length > 0) {
+                    reportHTML += `
+                        <h5 class="mt-4"><i class="bi bi-shield-plus"></i> Vaccination Records</h5>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Control No</th>
+                                        <th>Officer In Charge</th>
+                                        <th>Expiry Date</th>
+                                        <th>Date Provided</th>
+                                        <th>Payment Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+                    
+                    vaccination.forEach(vac => {
+                        reportHTML += `
+                            <tr>
+                                <td>${vac.controlNo}</td>
+                                <td>${vac.officerInCharge}</td>
+                                <td>${vac.expiryDate || 'N/A'}</td>
+                                <td>${vac.dateProvided ? new Date(vac.dateProvided).toLocaleDateString() : 'N/A'}</td>
+                                <td>${vac.paymentStatus === 'paid' ? '<span class="paid-label">Paid</span>' : '<span class="unpaid-label">Unpaid</span>'}</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    reportHTML += `
+                                </tbody>
+                                <tfoot>
+                                    <tr class="table-light">
+                                        <td colspan="4"><strong>Total Vaccination:</strong></td>
+                                        <td><strong>${vaccination.length}</strong></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    `;
+                }
+                
+                if (conveyances.length === 0 && chandelling.length === 0 && vaccination.length === 0) {
                     reportHTML += `
                         <div class="text-center py-4">
                             <i class="bi bi-file-earmark-x" style="font-size: 3rem; color: #ddd;"></i>
@@ -1811,27 +1865,19 @@
                         </div>
                     `;
                 } else {
-                    const totalAmount = conveyances.reduce((sum, conv) => sum + parseFloat(conv.amount || 0), 0) +
-                                      chandelling.reduce((sum, chan) => sum + parseFloat(chan.amount || 0), 0);
-                    
-                    const totalRecords = conveyances.length + chandelling.length;
-                    const totalPaid = conveyances.filter(c => c.paymentStatus === 'paid').length +
-                                    chandelling.filter(c => c.paymentStatus === 'paid').length;
-                    const totalUnpaid = totalRecords - totalPaid;
+                    const totalRecords = conveyances.length + chandelling.length + vaccination.length;
                     
                     reportHTML += `
                         <div class="alert alert-info mt-4">
                             <h6><i class="bi bi-graph-up"></i> Summary Report</h6>
                             <div class="row">
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <p><strong>Total Conveyances:</strong> ${conveyances.length}</p>
                                     <p><strong>Total Chandelling:</strong> ${chandelling.length}</p>
-                                    <p><strong>Total Records:</strong> ${totalRecords}</p>
+                                    <p><strong>Total Vaccination:</strong> ${vaccination.length}</p>
                                 </div>
-                                <div class="col-md-6">
-                                    <p><strong>Paid Records:</strong> ${totalPaid}</p>
-                                    <p><strong>Unpaid Records:</strong> ${totalUnpaid}</p>
-                                    <p><strong>Total Amount:</strong> ${formatAmount(totalAmount)}</p>
+                                <div class="col-md-4">
+                                    <p><strong>Total Records:</strong> ${totalRecords}</p>
                                 </div>
                             </div>
                         </div>
@@ -1846,7 +1892,7 @@
                 
             } catch (error) {
                 console.error('Error generating report:', error);
-                alert('Error generating report: ' + error.message);
+                alert('Error generating report. Please check the date range and try again.');
             }
         }
 
@@ -1866,8 +1912,8 @@
                         table { width: 100%; border-collapse: collapse; margin: 10px 0; }
                         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
                         th { background-color: #f8f9fa; }
-                        .badge-paid { background: #27ae60; color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.8em; }
-                        .badge-unpaid { background: #e74c3c; color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.8em; }
+                        .paid-label { color: #27ae60; font-weight: 600; }
+                        .unpaid-label { color: #e74c3c; font-weight: 600; }
                         .alert { padding: 10px; border-radius: 5px; margin: 10px 0; }
                         .alert-info { background: #d1ecf1; border: 1px solid #bee5eb; }
                         @media print {
