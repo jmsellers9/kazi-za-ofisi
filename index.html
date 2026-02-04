@@ -1,0 +1,1943 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Port Health Office Management System</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+            --info-color: #17a2b8;
+        }
+
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .auth-container {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .auth-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 500px;
+            overflow: hidden;
+        }
+
+        .auth-header {
+            background: var(--primary-color);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        .auth-body {
+            padding: 30px;
+        }
+
+        .btn-primary {
+            background: var(--secondary-color);
+            border: none;
+            padding: 12px;
+            font-weight: 600;
+        }
+
+        .btn-success {
+            background: var(--success-color);
+            border: none;
+            padding: 5px 10px;
+            font-size: 0.85rem;
+        }
+
+        .form-control {
+            padding: 12px 15px;
+            border: 2px solid #e1e5eb;
+            border-radius: 8px;
+        }
+
+        .nav-tabs .nav-link {
+            color: var(--primary-color);
+            font-weight: 500;
+            border: none;
+            padding: 10px 20px;
+        }
+
+        .nav-tabs .nav-link.active {
+            color: var(--secondary-color);
+            border-bottom: 3px solid var(--secondary-color);
+            background: transparent;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .badge-paid {
+            background: var(--success-color);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+
+        .badge-unpaid {
+            background: var(--danger-color);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+
+        .sidebar {
+            background: var(--primary-color);
+            min-height: 100vh;
+            color: white;
+            position: fixed;
+            width: 250px;
+        }
+
+        .main-content {
+            margin-left: 250px;
+            padding: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                margin-left: -250px;
+            }
+            .main-content {
+                margin-left: 0;
+            }
+            .sidebar.active {
+                margin-left: 0;
+            }
+            .main-content.active {
+                margin-left: 250px;
+            }
+        }
+
+        .table-hover tbody tr:hover {
+            background-color: rgba(52, 152, 219, 0.05);
+        }
+
+        .print-report {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .toggle-sidebar {
+            display: none;
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: var(--secondary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .toggle-sidebar {
+                display: block;
+            }
+        }
+
+        .firebase-config {
+            background: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .config-item {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 5px 0;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+
+        .copy-btn {
+            cursor: pointer;
+            color: var(--secondary-color);
+        }
+        
+        .copy-btn:hover {
+            text-decoration: underline;
+        }
+        
+        /* Currency selector in sidebar */
+        .currency-selector {
+            margin-top: 15px;
+            padding: 0 15px;
+        }
+        
+        .currency-selector select {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+        
+        .currency-selector select:focus {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border-color: var(--secondary-color);
+        }
+        
+        .currency-selector option {
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Page -->
+    <div id="loginPage" class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <i class="bi bi-shield-check" style="font-size: 3rem;"></i>
+                <h3 class="mt-3">Port Health Office</h3>
+                <p>Management System</p>
+            </div>
+            <div class="auth-body">
+                <div id="loginAlert" class="alert alert-danger d-none"></div>
+                <form id="loginForm">
+                    <div class="mb-3">
+                        <label class="form-label">Email Address</label>
+                        <input type="email" id="loginEmail" class="form-control" placeholder="Enter your email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Password</label>
+                        <input type="password" id="loginPassword" class="form-control" placeholder="Enter your password" required>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary" id="loginBtn">
+                            <span id="loginText">Login to System</span>
+                            <span id="loginSpinner" class="spinner-border spinner-border-sm d-none"></span>
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="showRegister()">
+                            Create New Account
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Register Page -->
+    <div id="registerPage" class="auth-container d-none">
+        <div class="auth-card">
+            <div class="auth-header">
+                <i class="bi bi-person-plus" style="font-size: 3rem;"></i>
+                <h3 class="mt-3">Create Account</h3>
+                <p>Join Port Health System</p>
+            </div>
+            <div class="auth-body">
+                <div id="registerAlert" class="alert alert-danger d-none"></div>
+                <div id="registerSuccess" class="alert alert-success d-none"></div>
+                <form id="registerForm">
+                    <div class="mb-3">
+                        <label class="form-label">Full Name</label>
+                        <input type="text" id="registerName" class="form-control" placeholder="Enter your full name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email Address</label>
+                        <input type="email" id="registerEmail" class="form-control" placeholder="Enter your email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Password</label>
+                        <input type="password" id="registerPassword" class="form-control" placeholder="Create a password (min. 6 chars)" minlength="6" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Confirm Password</label>
+                        <input type="password" id="registerConfirm" class="form-control" placeholder="Confirm your password" required>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success" id="registerBtn">
+                            <span id="registerText">Create Account</span>
+                            <span id="registerSpinner" class="spinner-border spinner-border-sm d-none"></span>
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="showLogin()">
+                            Back to Login
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Application -->
+    <div id="app" class="d-none">
+        <!-- Mobile Toggle Button -->
+        <button class="toggle-sidebar" onclick="toggleSidebar()">
+            <i class="bi bi-list"></i>
+        </button>
+
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="auth-header">
+                <h4 class="text-center">
+                    <i class="bi bi-shield-check"></i> Port Health
+                </h4>
+                <p class="text-center mb-0">Office Management</p>
+            </div>
+            <div class="text-center my-4">
+                <div class="bg-secondary rounded-circle d-inline-flex align-items-center justify-content-center" 
+                     style="width: 80px; height: 80px;">
+                    <i class="bi bi-person-fill" style="font-size: 2rem;"></i>
+                </div>
+                <h5 class="mt-2" id="userName">User Name</h5>
+                <small class="badge bg-info" id="userRole">Officer</small>
+            </div>
+            
+            <!-- Currency Selector -->
+            <div class="currency-selector">
+                <select class="form-select form-select-sm" id="currencySelect" onchange="changeCurrency(this.value)">
+                    <option value="USD">USD ($)</option>
+                    <option value="TSH">TSH</option>
+                </select>
+            </div>
+            
+            <div class="sidebar-nav">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#" onclick="showDashboard()">
+                            <i class="bi bi-speedometer2"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showConveyance('all')">
+                            <i class="bi bi-truck"></i> Conveyance
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showChandelling()">
+                            <i class="bi bi-ship"></i> Ship Chandelling
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showReportPage()">
+                            <i class="bi bi-printer"></i> Print Report
+                        </a>
+                    </li>
+                    <li class="nav-item mt-4">
+                        <a class="nav-link text-danger" href="#" onclick="logout()">
+                            <i class="bi bi-box-arrow-right"></i> Logout
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            <div class="sidebar-footer text-center p-3">
+                <small class="text-muted">© 2024 Port Health</small>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content" id="mainContent">
+            <!-- Dashboard -->
+            <div id="dashboardPage">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2 class="text-primary">
+                        <i class="bi bi-speedometer2"></i> Dashboard Overview
+                    </h2>
+                    <div class="text-muted" id="currentDate"></div>
+                </div>
+
+                <!-- Quick Stats -->
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="stat-card">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-truck text-primary" style="font-size: 2rem;"></i>
+                                <div class="ms-3">
+                                    <h3 class="mb-0" id="totalConveyance">0</h3>
+                                    <small class="text-muted">Total Conveyances</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-exclamation-triangle text-warning" style="font-size: 2rem;"></i>
+                                <div class="ms-3">
+                                    <h3 class="mb-0" id="unpaidConveyance">0</h3>
+                                    <small class="text-muted">Unpaid Conveyances</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-ship text-success" style="font-size: 2rem;"></i>
+                                <div class="ms-3">
+                                    <h3 class="mb-0" id="totalChandelling">0</h3>
+                                    <small class="text-muted">Ship Chandelling</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-currency-dollar text-info" style="font-size: 2rem;"></i>
+                                <div class="ms-3">
+                                    <h3 class="mb-0" id="totalRevenue">0</h3>
+                                    <small class="text-muted">Today's Revenue</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="card mt-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="bi bi-lightning"></i> Quick Actions</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3 mb-2">
+                                <button class="btn btn-primary w-100" onclick="showAddConveyance('domestic')">
+                                    <i class="bi bi-truck"></i> Domestic Conveyance
+                                </button>
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <button class="btn btn-primary w-100" onclick="showAddConveyance('international')">
+                                    <i class="bi bi-globe"></i> International Conveyance
+                                </button>
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <button class="btn btn-success w-100" onclick="showAddChandelling()">
+                                    <i class="bi bi-plus-circle"></i> Add Chandelling
+                                </button>
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <button class="btn btn-info w-100" onclick="showReportPage()">
+                                    <i class="bi bi-printer"></i> Generate Report
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-clock-history"></i> Recent Activity</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Type</th>
+                                        <th>Control No</th>
+                                        <th>Description</th>
+                                        <th>Status</th>
+                                        <th>Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recentActivity">
+                                    <!-- Recent activity will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Conveyance Management -->
+            <div id="conveyancePage" class="d-none">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2 class="text-primary">
+                        <i class="bi bi-truck"></i> Conveyance Inspection
+                    </h2>
+                    <button class="btn btn-primary" onclick="showAddConveyance()">
+                        <i class="bi bi-plus-circle"></i> Add New
+                    </button>
+                </div>
+
+                <!-- Tabs -->
+                <ul class="nav nav-tabs mb-3" id="conveyanceTabs">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#" onclick="filterConveyance('all')">All Conveyances</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="filterConveyance('domestic')">Domestic</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="filterConveyance('international')">International</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="filterConveyance('unpaid')">Unpaid</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="filterConveyance('paid')">Paid History</a>
+                    </li>
+                </ul>
+
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Control No</th>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Conveyance</th>
+                                <th>Company</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="conveyanceTable">
+                            <!-- Conveyance data will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Ship Chandelling -->
+            <div id="chandellingPage" class="d-none">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2 class="text-primary">
+                        <i class="bi bi-ship"></i> Ship Chandelling
+                    </h2>
+                    <button class="btn btn-success" onclick="showAddChandelling()">
+                        <i class="bi bi-plus-circle"></i> Add New
+                    </button>
+                </div>
+
+                <!-- Tabs -->
+                <ul class="nav nav-tabs mb-3" id="chandellingTabs">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#" onclick="filterChandelling('all')">All Records</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="filterChandelling('unpaid')">Unpaid</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="filterChandelling('paid')">Paid</a>
+                    </li>
+                </ul>
+
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Control No</th>
+                                <th>Date</th>
+                                <th>Company</th>
+                                <th>Ship Name</th>
+                                <th>Port of Call</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="chandellingTable">
+                            <!-- Chandelling data will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Report Page -->
+            <div id="reportPage" class="d-none">
+                <div class="print-report">
+                    <div class="print-header">
+                        <h2 class="print-title">
+                            <i class="bi bi-printer"></i> Generate Reports
+                        </h2>
+                        <p class="report-date">Select date range and report type</p>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card mb-4">
+                                <div class="card-header bg-info text-white">
+                                    <h5 class="mb-0">Report Settings</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Report Type</label>
+                                        <select class="form-control" id="reportType">
+                                            <option value="daily">Daily Report</option>
+                                            <option value="monthly">Monthly Report</option>
+                                            <option value="custom">Custom Date Range</option>
+                                        </select>
+                                    </div>
+
+                                    <div id="dailyDate" class="mb-3">
+                                        <label class="form-label">Select Date</label>
+                                        <input type="date" class="form-control" id="reportDate" value="">
+                                    </div>
+
+                                    <div id="monthlyDate" class="mb-3 d-none">
+                                        <label class="form-label">Select Month</label>
+                                        <input type="month" class="form-control" id="reportMonth" value="">
+                                    </div>
+
+                                    <div id="customDate" class="mb-3 d-none">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <label class="form-label">Start Date</label>
+                                                <input type="date" class="form-control" id="startDate">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">End Date</label>
+                                                <input type="date" class="form-control" id="endDate">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Report For</label>
+                                        <select class="form-control" id="reportFor">
+                                            <option value="all">All Records</option>
+                                            <option value="conveyance">Conveyance Only</option>
+                                            <option value="chandelling">Ship Chandelling Only</option>
+                                            <option value="paid">Paid Records Only</option>
+                                            <option value="unpaid">Unpaid Records Only</option>
+                                        </select>
+                                    </div>
+
+                                    <button class="btn btn-primary w-100" onclick="generateReport()">
+                                        <i class="bi bi-file-earmark-text"></i> Generate Report
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-success text-white">
+                                    <h5 class="mb-0">Report Preview</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="reportPreview" class="text-center py-4">
+                                        <i class="bi bi-file-earmark-text" style="font-size: 3rem; color: #ddd;"></i>
+                                        <p class="text-muted mt-2">Report preview will appear here</p>
+                                    </div>
+                                    <div id="reportContent" class="d-none">
+                                        <div id="reportHeader"></div>
+                                        <div id="reportData" class="mt-3"></div>
+                                        <div class="mt-4">
+                                            <button class="btn btn-success" onclick="printReport()">
+                                                <i class="bi bi-printer"></i> Print Report
+                                            </button>
+                                            <button class="btn btn-outline-secondary" onclick="exportReport()">
+                                                <i class="bi bi-download"></i> Export as PDF
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Add Conveyance Modal -->
+    <div class="modal fade" id="addConveyanceModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Conveyance Inspection</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="conveyanceAlert" class="alert alert-danger d-none"></div>
+                    <form id="conveyanceForm">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Conveyance Type <span class="text-danger">*</span></label>
+                                <select class="form-control" id="convType" required>
+                                    <option value="">Select Type</option>
+                                    <option value="domestic">Domestic</option>
+                                    <option value="international">International</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Inspection Date <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="convDate" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Control Number <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="controlNo" placeholder="Enter your control number" required>
+                                <small class="text-muted">Enter your own control number (e.g., CONV-2024-001)</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Conveyance Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="convName" placeholder="Enter conveyance name" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Registration Number</label>
+                                <input type="text" class="form-control" id="regNo" placeholder="Enter registration number">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Company Name</label>
+                                <input type="text" class="form-control" id="companyName" placeholder="Enter company name">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Origin</label>
+                                <input type="text" class="form-control" id="origin" placeholder="Enter origin">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Destination</label>
+                                <input type="text" class="form-control" id="destination" placeholder="Enter destination">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Amount <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text" id="convCurrencySymbol">$</span>
+                                <input type="number" class="form-control" id="convAmount" step="0.01" placeholder="Enter amount" required>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveConveyance()">Save Record</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Chandelling Modal -->
+    <div class="modal fade" id="addChandellingModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Ship Chandelling</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="chandellingAlert" class="alert alert-danger d-none"></div>
+                    <form id="chandellingForm">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Control Number <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="chanControlNo" placeholder="Enter your control number" required>
+                                <small class="text-muted">Enter your own control number (e.g., CHAN-2024-001)</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Date <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="chanDate" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Company Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="chanCompany" placeholder="Enter company name" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Ship Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="shipName" placeholder="Enter ship name" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Port of Call</label>
+                                <input type="text" class="form-control" id="portOfCall" placeholder="Enter port of call">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Services Provided</label>
+                                <input type="text" class="form-control" id="services" placeholder="Enter services provided">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Amount <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text" id="chanCurrencySymbol">$</span>
+                                <input type="number" class="form-control" id="chanAmount" step="0.01" placeholder="Enter amount" required>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" onclick="saveChandelling()">Save Record</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Firebase Configuration - YOUR CONFIGURATION
+        const firebaseConfig = {
+            apiKey: "AIzaSyCUDZYw8653nwYIR6rGK7crZZkrzlrgltU",
+            authDomain: "watson-pos.firebaseapp.com",
+            projectId: "watson-pos",
+            storageBucket: "watson-pos.firebasestorage.app",
+            messagingSenderId: "422808144593",
+            appId: "1:422808144593:web:5e30943b82d55c387193f0"
+        };
+
+        // Global variables
+        let auth = null;
+        let db = null;
+        let currentUser = null;
+        let currentView = 'dashboard';
+        let isFirebaseInitialized = false;
+        let currentCurrency = localStorage.getItem('currency') || 'USD';
+        const exchangeRate = 2300; // 1 USD = 2300 TSH
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set default dates
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('convDate').value = today;
+            document.getElementById('chanDate').value = today;
+            document.getElementById('reportDate').value = today;
+            document.getElementById('reportMonth').value = today.slice(0, 7);
+            document.getElementById('startDate').value = today;
+            document.getElementById('endDate').value = today;
+            
+            // Set currency selector
+            document.getElementById('currencySelect').value = currentCurrency;
+            updateCurrencySymbols();
+            
+            // Initialize Firebase with hardcoded config
+            initializeFirebase(firebaseConfig);
+            
+            // Setup event listeners
+            document.getElementById('loginForm').addEventListener('submit', login);
+            document.getElementById('registerForm').addEventListener('submit', register);
+            document.getElementById('reportType').addEventListener('change', setupReportForm);
+        });
+
+        // Firebase Initialization
+        function initializeFirebase(config) {
+            try {
+                // Initialize Firebase
+                firebase.initializeApp(config);
+                auth = firebase.auth();
+                db = firebase.firestore();
+                isFirebaseInitialized = true;
+                
+                // Set up auth state listener
+                auth.onAuthStateChanged(user => {
+                    if (user) {
+                        currentUser = user;
+                        loadUserData();
+                        showApp();
+                        loadDashboard();
+                    } else {
+                        showLogin();
+                    }
+                });
+                
+                // Auto-show login
+                showLogin();
+                
+            } catch (error) {
+                console.error('Firebase initialization error:', error);
+                // Show error on login page
+                showLogin();
+                document.getElementById('loginAlert').textContent = 'Firebase initialization failed. Please check console for details.';
+                document.getElementById('loginAlert').classList.remove('d-none');
+            }
+        }
+
+        // Currency Functions
+        function changeCurrency(currency) {
+            currentCurrency = currency;
+            localStorage.setItem('currency', currency);
+            updateCurrencySymbols();
+            
+            // Refresh current view
+            if (currentView === 'dashboard') {
+                loadDashboard();
+            } else if (currentView === 'conveyance') {
+                filterConveyance('all');
+            } else if (currentView === 'chandelling') {
+                filterChandelling('all');
+            } else if (currentView === 'report') {
+                generateReport();
+            }
+        }
+
+        function updateCurrencySymbols() {
+            const symbol = currentCurrency === 'USD' ? '$' : 'TSH ';
+            document.getElementById('convCurrencySymbol').textContent = symbol;
+            document.getElementById('chanCurrencySymbol').textContent = symbol;
+        }
+
+        function formatAmount(amount) {
+            if (currentCurrency === 'USD') {
+                return `$${parseFloat(amount).toFixed(2)}`;
+            } else {
+                // Convert to TSH
+                const tshAmount = parseFloat(amount) * exchangeRate;
+                return `${tshAmount.toFixed(0)} TSH`;
+            }
+        }
+
+        function getAmountInUSD(amount) {
+            if (currentCurrency === 'USD') {
+                return parseFloat(amount);
+            } else {
+                // Convert from TSH to USD
+                return parseFloat(amount) / exchangeRate;
+            }
+        }
+
+        // Authentication Functions
+        async function login(event) {
+            if (event) event.preventDefault();
+            
+            if (!isFirebaseInitialized) {
+                alert('System not configured properly. Please contact administrator.');
+                return;
+            }
+            
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            if (!email || !password) {
+                showAlert('loginAlert', 'Please fill in all fields');
+                return;
+            }
+            
+            showLoading('loginBtn', 'loginText', 'loginSpinner');
+            
+            try {
+                const userCredential = await auth.signInWithEmailAndPassword(email, password);
+                currentUser = userCredential.user;
+                showApp();
+                loadDashboard();
+            } catch (error) {
+                showAlert('loginAlert', error.message);
+            } finally {
+                hideLoading('loginBtn', 'loginText', 'loginSpinner');
+            }
+        }
+
+        async function register(event) {
+            if (event) event.preventDefault();
+            
+            if (!isFirebaseInitialized) {
+                alert('System not configured properly. Please contact administrator.');
+                return;
+            }
+            
+            const name = document.getElementById('registerName').value;
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            const confirm = document.getElementById('registerConfirm').value;
+            
+            if (!name || !email || !password || !confirm) {
+                showAlert('registerAlert', 'Please fill in all fields');
+                return;
+            }
+            
+            if (password !== confirm) {
+                showAlert('registerAlert', 'Passwords do not match');
+                return;
+            }
+            
+            if (password.length < 6) {
+                showAlert('registerAlert', 'Password must be at least 6 characters');
+                return;
+            }
+            
+            showLoading('registerBtn', 'registerText', 'registerSpinner');
+            
+            try {
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                await userCredential.user.updateProfile({ displayName: name });
+                
+                // Create user document in Firestore
+                await db.collection('users').doc(userCredential.user.uid).set({
+                    name: name,
+                    email: email,
+                    role: 'officer',
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                showSuccess('registerSuccess', 'Account created successfully!');
+                setTimeout(() => {
+                    showLogin();
+                }, 2000);
+            } catch (error) {
+                showAlert('registerAlert', error.message);
+            } finally {
+                hideLoading('registerBtn', 'registerText', 'registerSpinner');
+            }
+        }
+
+        async function logout() {
+            try {
+                await auth.signOut();
+                currentUser = null;
+                showLogin();
+            } catch (error) {
+                console.error('Logout error:', error);
+            }
+        }
+
+        // UI Functions
+        function showLogin() {
+            document.getElementById('loginPage').classList.remove('d-none');
+            document.getElementById('registerPage').classList.add('d-none');
+            document.getElementById('app').classList.add('d-none');
+            clearAlerts();
+        }
+
+        function showRegister() {
+            document.getElementById('loginPage').classList.add('d-none');
+            document.getElementById('registerPage').classList.remove('d-none');
+            document.getElementById('app').classList.add('d-none');
+            clearAlerts();
+        }
+
+        function showApp() {
+            document.getElementById('loginPage').classList.add('d-none');
+            document.getElementById('registerPage').classList.add('d-none');
+            document.getElementById('app').classList.remove('d-none');
+            updateCurrentDate();
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+            sidebar.classList.toggle('active');
+            mainContent.classList.toggle('active');
+        }
+
+        function showDashboard() {
+            hideAllPages();
+            document.getElementById('dashboardPage').classList.remove('d-none');
+            currentView = 'dashboard';
+            loadDashboard();
+        }
+
+        function showConveyance(filter = null) {
+            hideAllPages();
+            document.getElementById('conveyancePage').classList.remove('d-none');
+            currentView = 'conveyance';
+            
+            // Use stored tab state if no filter provided
+            const tabState = filter || getTabState('conveyance');
+            filterConveyance(tabState);
+            
+            // Update active tab visually
+            const tabs = document.querySelectorAll('#conveyanceTabs .nav-link');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            tabs.forEach(tab => {
+                if (tab.textContent.toLowerCase().includes(tabState) || 
+                    (tabState === 'all' && tab.textContent.includes('All Conveyances'))) {
+                    tab.classList.add('active');
+                }
+            });
+        }
+
+        function showChandelling() {
+            hideAllPages();
+            document.getElementById('chandellingPage').classList.remove('d-none');
+            currentView = 'chandelling';
+            
+            // Use stored tab state
+            const tabState = getTabState('chandelling');
+            filterChandelling(tabState);
+            
+            // Update active tab visually
+            const tabs = document.querySelectorAll('#chandellingTabs .nav-link');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            tabs.forEach(tab => {
+                if (tab.textContent.toLowerCase().includes(tabState) || 
+                    (tabState === 'all' && tab.textContent.includes('All Records'))) {
+                    tab.classList.add('active');
+                }
+            });
+        }
+
+        function showReportPage() {
+            hideAllPages();
+            document.getElementById('reportPage').classList.remove('d-none');
+            currentView = 'report';
+            setupReportForm();
+        }
+
+        function hideAllPages() {
+            document.getElementById('dashboardPage').classList.add('d-none');
+            document.getElementById('conveyancePage').classList.add('d-none');
+            document.getElementById('chandellingPage').classList.add('d-none');
+            document.getElementById('reportPage').classList.add('d-none');
+        }
+
+        // Seamless tab transmission - Store tab state
+        function storeTabState(tabType, filter) {
+            localStorage.setItem(`${tabType}TabState`, filter);
+        }
+
+        function getTabState(tabType) {
+            return localStorage.getItem(`${tabType}TabState`) || 'all';
+        }
+
+        // Data Management Functions
+        async function loadUserData() {
+            if (!currentUser) return;
+            
+            try {
+                const userDoc = await db.collection('users').doc(currentUser.uid).get();
+                if (userDoc.exists) {
+                    const userData = userDoc.data();
+                    document.getElementById('userName').textContent = userData.name;
+                    document.getElementById('userRole').textContent = userData.role;
+                }
+            } catch (error) {
+                console.error('Error loading user data:', error);
+            }
+        }
+
+        async function loadDashboard() {
+            if (!currentUser) return;
+            
+            try {
+                // Get today's date
+                const today = new Date();
+                const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                
+                // Load conveyance stats
+                const conveyanceSnapshot = await db.collection('conveyances')
+                    .where('createdAt', '>=', startOfDay)
+                    .get();
+                
+                let totalConveyance = 0;
+                let unpaidConveyance = 0;
+                let totalRevenue = 0;
+                
+                conveyanceSnapshot.forEach(doc => {
+                    totalConveyance++;
+                    const data = doc.data();
+                    if (data.paymentStatus === 'unpaid') {
+                        unpaidConveyance++;
+                    } else if (data.paymentStatus === 'paid') {
+                        totalRevenue += parseFloat(data.amount || 0);
+                    }
+                });
+                
+                // Load chandelling stats
+                const chandellingSnapshot = await db.collection('chandelling')
+                    .where('createdAt', '>=', startOfDay)
+                    .get();
+                
+                const totalChandelling = chandellingSnapshot.size;
+                chandellingSnapshot.forEach(doc => {
+                    const data = doc.data();
+                    if (data.paymentStatus === 'paid') {
+                        totalRevenue += parseFloat(data.amount || 0);
+                    }
+                });
+                
+                // Update UI with formatted amounts
+                document.getElementById('totalConveyance').textContent = totalConveyance;
+                document.getElementById('unpaidConveyance').textContent = unpaidConveyance;
+                document.getElementById('totalChandelling').textContent = totalChandelling;
+                document.getElementById('totalRevenue').textContent = formatAmount(totalRevenue);
+                
+                // Load recent activity
+                loadRecentActivity();
+                
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+            }
+        }
+
+        async function loadRecentActivity() {
+            if (!currentUser) return;
+            
+            try {
+                const activityTable = document.getElementById('recentActivity');
+                activityTable.innerHTML = '';
+                
+                // Get recent conveyances
+                const convSnapshot = await db.collection('conveyances')
+                    .orderBy('createdAt', 'desc')
+                    .limit(5)
+                    .get();
+                
+                convSnapshot.forEach(doc => {
+                    const data = doc.data();
+                    const row = createActivityRow('Conveyance', data.controlNo, 
+                        `${data.convName} - ${data.convType}`, 
+                        data.paymentStatus, data.inspectionDate);
+                    activityTable.appendChild(row);
+                });
+                
+                // Get recent chandelling
+                const chanSnapshot = await db.collection('chandelling')
+                    .orderBy('createdAt', 'desc')
+                    .limit(5)
+                    .get();
+                
+                chanSnapshot.forEach(doc => {
+                    const data = doc.data();
+                    const row = createActivityRow('Chandelling', data.controlNo,
+                        `${data.company} - ${data.shipName}`,
+                        data.paymentStatus, data.date);
+                    activityTable.appendChild(row);
+                });
+                
+            } catch (error) {
+                console.error('Error loading recent activity:', error);
+            }
+        }
+
+        function createActivityRow(type, controlNo, description, status, date) {
+            const row = document.createElement('tr');
+            const statusBadge = status === 'paid' ? 
+                `<span class="badge-paid">Paid</span>` : 
+                `<span class="badge-unpaid">Unpaid</span>`;
+            
+            row.innerHTML = `
+                <td><strong>${type}</strong></td>
+                <td>${controlNo || 'N/A'}</td>
+                <td>${description}</td>
+                <td>${statusBadge}</td>
+                <td>${date ? new Date(date).toLocaleDateString() : 'N/A'}</td>
+            `;
+            return row;
+        }
+
+        // Conveyance Functions
+        function showAddConveyance(type = null) {
+            const modal = new bootstrap.Modal(document.getElementById('addConveyanceModal'));
+            document.getElementById('conveyanceForm').reset();
+            hideAlert('conveyanceAlert');
+            
+            // Set default values
+            document.getElementById('convDate').value = new Date().toISOString().split('T')[0];
+            
+            if (type) {
+                document.getElementById('convType').value = type;
+            }
+            
+            modal.show();
+        }
+
+        async function saveConveyance() {
+            if (!currentUser) return;
+            
+            const controlNo = document.getElementById('controlNo').value.trim();
+            const convType = document.getElementById('convType').value;
+            const inspectionDate = document.getElementById('convDate').value;
+            const convName = document.getElementById('convName').value.trim();
+            const regNo = document.getElementById('regNo').value.trim();
+            const companyName = document.getElementById('companyName').value.trim();
+            const origin = document.getElementById('origin').value.trim();
+            const destination = document.getElementById('destination').value.trim();
+            const amountInput = document.getElementById('convAmount').value;
+            
+            // Convert amount to USD for storage
+            const amount = currentCurrency === 'USD' ? parseFloat(amountInput) : parseFloat(amountInput) / exchangeRate;
+            
+            // Validation
+            if (!controlNo || !convType || !inspectionDate || !convName || !amountInput) {
+                showAlert('conveyanceAlert', 'Please fill in all required fields (*)');
+                return;
+            }
+            
+            // Check if control number already exists
+            const existing = await db.collection('conveyances')
+                .where('controlNo', '==', controlNo)
+                .get();
+            
+            if (!existing.empty) {
+                showAlert('conveyanceAlert', 'This control number already exists. Please use a different one.');
+                return;
+            }
+            
+            const formData = {
+                controlNo: controlNo,
+                convType: convType,
+                inspectionDate: inspectionDate,
+                convName: convName,
+                regNo: regNo || '',
+                companyName: companyName || '',
+                origin: origin || '',
+                destination: destination || '',
+                amount: amount, // Store in USD
+                paymentStatus: 'unpaid',
+                createdBy: currentUser.uid,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            
+            try {
+                await db.collection('conveyances').add(formData);
+                bootstrap.Modal.getInstance(document.getElementById('addConveyanceModal')).hide();
+                alert('Conveyance record saved successfully!');
+                loadDashboard();
+                if (currentView === 'conveyance') filterConveyance('all');
+            } catch (error) {
+                showAlert('conveyanceAlert', 'Error saving record: ' + error.message);
+            }
+        }
+
+        async function filterConveyance(filter) {
+            if (!currentUser) return;
+            
+            try {
+                let query = db.collection('conveyances');
+                
+                switch(filter) {
+                    case 'domestic':
+                        query = query.where('convType', '==', 'domestic');
+                        break;
+                    case 'international':
+                        query = query.where('convType', '==', 'international');
+                        break;
+                    case 'unpaid':
+                        query = query.where('paymentStatus', '==', 'unpaid');
+                        break;
+                    case 'paid':
+                        query = query.where('paymentStatus', '==', 'paid');
+                        break;
+                }
+                
+                const snapshot = await query.orderBy('createdAt', 'desc').get();
+                renderConveyanceTable(snapshot);
+                
+                // Store tab state for seamless transmission
+                storeTabState('conveyance', filter);
+            } catch (error) {
+                console.error('Error filtering conveyances:', error);
+            }
+        }
+
+        function renderConveyanceTable(snapshot) {
+            const tableBody = document.getElementById('conveyanceTable');
+            tableBody.innerHTML = '';
+            
+            if (snapshot.empty) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="text-center py-4">
+                            <i class="bi bi-inbox" style="font-size: 2rem; color: #ddd;"></i>
+                            <p class="text-muted mt-2">No records found</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                const row = document.createElement('tr');
+                const statusBadge = data.paymentStatus === 'paid' ? 
+                    `<span class="badge-paid">Paid</span>` : 
+                    `<span class="badge-unpaid">Unpaid</span>`;
+                
+                // SIMPLE ONE-CLICK "MARK PAID" BUTTON - NO MODAL, NO EXTRA FIELDS
+                const actions = data.paymentStatus === 'unpaid' ? 
+                    `<button class="btn btn-sm btn-success" onclick="markAsPaid('conveyance', '${doc.id}')">
+                        <i class="bi bi-check-circle"></i> Mark Paid
+                    </button>` : 
+                    `<span class="text-muted">Already Paid</span>`;
+                
+                row.innerHTML = `
+                    <td><strong>${data.controlNo}</strong></td>
+                    <td>${data.inspectionDate ? new Date(data.inspectionDate).toLocaleDateString() : 'N/A'}</td>
+                    <td><span class="badge ${data.convType === 'domestic' ? 'bg-info' : 'bg-warning'}">
+                        ${data.convType}
+                    </span></td>
+                    <td>${data.convName}</td>
+                    <td>${data.companyName || 'N/A'}</td>
+                    <td>${formatAmount(data.amount)}</td>
+                    <td>${statusBadge}</td>
+                    <td>${actions}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // SIMPLE ONE-CLICK "MARK AS PAID" FUNCTION
+        async function markAsPaid(type, id) {
+            if (!currentUser) return;
+            
+            if (!confirm('Are you sure you want to mark this as paid?')) {
+                return;
+            }
+            
+            try {
+                // SIMPLE UPDATE: ONLY change paymentStatus to 'paid' and add paymentDate
+                const paymentData = {
+                    paymentStatus: 'paid',
+                    paymentDate: new Date().toISOString().split('T')[0], // Today's date
+                    paidBy: currentUser.uid,
+                    paidAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                
+                // Update the record - ONLY these fields, nothing else
+                if (type === 'conveyance') {
+                    await db.collection('conveyances').doc(id).update(paymentData);
+                } else if (type === 'chandelling') {
+                    await db.collection('chandelling').doc(id).update(paymentData);
+                }
+                
+                // Create payment history record
+                await db.collection('paymentHistory').add({
+                    recordId: id,
+                    recordType: type,
+                    paymentDate: new Date().toISOString().split('T')[0],
+                    paymentMethod: 'cash', // Default to cash
+                    processedBy: currentUser.uid,
+                    processedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                alert('Marked as paid successfully!');
+                
+                // Refresh current view
+                if (currentView === 'conveyance') filterConveyance('unpaid');
+                else if (currentView === 'chandelling') filterChandelling('unpaid');
+                loadDashboard();
+            } catch (error) {
+                alert('Error marking as paid: ' + error.message);
+            }
+        }
+
+        // Chandelling Functions
+        function showAddChandelling() {
+            const modal = new bootstrap.Modal(document.getElementById('addChandellingModal'));
+            document.getElementById('chandellingForm').reset();
+            hideAlert('chandellingAlert');
+            
+            // Set default date
+            document.getElementById('chanDate').value = new Date().toISOString().split('T')[0];
+            
+            modal.show();
+        }
+
+        async function saveChandelling() {
+            if (!currentUser) return;
+            
+            const controlNo = document.getElementById('chanControlNo').value.trim();
+            const date = document.getElementById('chanDate').value;
+            const company = document.getElementById('chanCompany').value.trim();
+            const shipName = document.getElementById('shipName').value.trim();
+            const portOfCall = document.getElementById('portOfCall').value.trim();
+            const services = document.getElementById('services').value.trim();
+            const amountInput = document.getElementById('chanAmount').value;
+            
+            // Convert amount to USD for storage
+            const amount = currentCurrency === 'USD' ? parseFloat(amountInput) : parseFloat(amountInput) / exchangeRate;
+            
+            // Validation
+            if (!controlNo || !date || !company || !shipName || !amountInput) {
+                showAlert('chandellingAlert', 'Please fill in all required fields (*)');
+                return;
+            }
+            
+            // Check if control number already exists
+            const existing = await db.collection('chandelling')
+                .where('controlNo', '==', controlNo)
+                .get();
+            
+            if (!existing.empty) {
+                showAlert('chandellingAlert', 'This control number already exists. Please use a different one.');
+                return;
+            }
+            
+            const formData = {
+                controlNo: controlNo,
+                date: date,
+                company: company,
+                shipName: shipName,
+                portOfCall: portOfCall || '',
+                services: services || '',
+                amount: amount, // Store in USD
+                paymentStatus: 'unpaid',
+                createdBy: currentUser.uid,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            
+            try {
+                await db.collection('chandelling').add(formData);
+                bootstrap.Modal.getInstance(document.getElementById('addChandellingModal')).hide();
+                alert('Chandelling record saved successfully!');
+                loadDashboard();
+                if (currentView === 'chandelling') filterChandelling('all');
+            } catch (error) {
+                showAlert('chandellingAlert', 'Error saving record: ' + error.message);
+            }
+        }
+
+        async function filterChandelling(filter) {
+            if (!currentUser) return;
+            
+            try {
+                let query = db.collection('chandelling');
+                
+                if (filter === 'unpaid') {
+                    query = query.where('paymentStatus', '==', 'unpaid');
+                } else if (filter === 'paid') {
+                    query = query.where('paymentStatus', '==', 'paid');
+                }
+                
+                const snapshot = await query.orderBy('createdAt', 'desc').get();
+                renderChandellingTable(snapshot);
+                
+                // Store tab state for seamless transmission
+                storeTabState('chandelling', filter);
+            } catch (error) {
+                console.error('Error filtering chandelling:', error);
+            }
+        }
+
+        function renderChandellingTable(snapshot) {
+            const tableBody = document.getElementById('chandellingTable');
+            tableBody.innerHTML = '';
+            
+            if (snapshot.empty) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="text-center py-4">
+                            <i class="bi bi-inbox" style="font-size: 2rem; color: #ddd;"></i>
+                            <p class="text-muted mt-2">No records found</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                const row = document.createElement('tr');
+                const statusBadge = data.paymentStatus === 'paid' ? 
+                    `<span class="badge-paid">Paid</span>` : 
+                    `<span class="badge-unpaid">Unpaid</span>`;
+                
+                // SIMPLE ONE-CLICK "MARK PAID" BUTTON - NO MODAL, NO EXTRA FIELDS
+                const actions = data.paymentStatus === 'unpaid' ? 
+                    `<button class="btn btn-sm btn-success" onclick="markAsPaid('chandelling', '${doc.id}')">
+                        <i class="bi bi-check-circle"></i> Mark Paid
+                    </button>` : 
+                    `<span class="text-muted">Already Paid</span>`;
+                
+                row.innerHTML = `
+                    <td><strong>${data.controlNo}</strong></td>
+                    <td>${data.date ? new Date(data.date).toLocaleDateString() : 'N/A'}</td>
+                    <td>${data.company}</td>
+                    <td>${data.shipName}</td>
+                    <td>${data.portOfCall || 'N/A'}</td>
+                    <td>${formatAmount(data.amount)}</td>
+                    <td>${statusBadge}</td>
+                    <td>${actions}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Report Functions
+        function setupReportForm() {
+            const reportType = document.getElementById('reportType');
+            const today = new Date().toISOString().split('T')[0];
+            
+            // Set default dates
+            document.getElementById('reportDate').value = today;
+            document.getElementById('startDate').value = today;
+            document.getElementById('endDate').value = today;
+            
+            reportType.addEventListener('change', function() {
+                document.getElementById('dailyDate').classList.add('d-none');
+                document.getElementById('monthlyDate').classList.add('d-none');
+                document.getElementById('customDate').classList.add('d-none');
+                
+                if (this.value === 'daily') {
+                    document.getElementById('dailyDate').classList.remove('d-none');
+                } else if (this.value === 'monthly') {
+                    document.getElementById('monthlyDate').classList.remove('d-none');
+                } else if (this.value === 'custom') {
+                    document.getElementById('customDate').classList.remove('d-none');
+                }
+            });
+        }
+
+        async function generateReport() {
+            if (!currentUser) return;
+            
+            try {
+                const reportType = document.getElementById('reportType').value;
+                const reportFor = document.getElementById('reportFor').value;
+                
+                let startDate, endDate;
+                
+                // Calculate date range based on report type
+                if (reportType === 'daily') {
+                    const date = new Date(document.getElementById('reportDate').value);
+                    startDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+                    endDate = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
+                } else if (reportType === 'monthly') {
+                    const month = document.getElementById('reportMonth').value;
+                    const [year, monthNum] = month.split('-');
+                    startDate = new Date(year, monthNum - 1, 1);
+                    endDate = new Date(year, monthNum, 0);
+                    endDate.setHours(23, 59, 59, 999);
+                } else if (reportType === 'custom') {
+                    startDate = new Date(document.getElementById('startDate').value);
+                    endDate = new Date(document.getElementById('endDate').value);
+                    endDate.setHours(23, 59, 59, 999);
+                }
+                
+                // Generate report header
+                let reportTitle = '';
+                if (reportType === 'daily') {
+                    reportTitle = `Daily Report for ${startDate.toLocaleDateString()}`;
+                } else if (reportType === 'monthly') {
+                    reportTitle = `Monthly Report for ${startDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`;
+                } else {
+                    reportTitle = `Custom Report from ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`;
+                }
+                
+                // Fetch data based on selection
+                let conveyances = [];
+                let chandelling = [];
+                
+                if (reportFor === 'all' || reportFor === 'conveyance' || reportFor === 'paid' || reportFor === 'unpaid') {
+                    let convQuery = db.collection('conveyances');
+                    
+                    // Apply date filter
+                    convQuery = convQuery.where('inspectionDate', '>=', startDate.toISOString().split('T')[0])
+                                         .where('inspectionDate', '<=', endDate.toISOString().split('T')[0]);
+                    
+                    if (reportFor === 'paid') {
+                        convQuery = convQuery.where('paymentStatus', '==', 'paid');
+                    } else if (reportFor === 'unpaid') {
+                        convQuery = convQuery.where('paymentStatus', '==', 'unpaid');
+                    }
+                    
+                    const convSnapshot = await convQuery.get();
+                    convSnapshot.forEach(doc => {
+                        conveyances.push({ id: doc.id, ...doc.data() });
+                    });
+                }
+                
+                if (reportFor === 'all' || reportFor === 'chandelling' || reportFor === 'paid' || reportFor === 'unpaid') {
+                    let chanQuery = db.collection('chandelling');
+                    
+                    // Apply date filter
+                    chanQuery = chanQuery.where('date', '>=', startDate.toISOString().split('T')[0])
+                                         .where('date', '<=', endDate.toISOString().split('T')[0]);
+                    
+                    if (reportFor === 'paid') {
+                        chanQuery = chanQuery.where('paymentStatus', '==', 'paid');
+                    } else if (reportFor === 'unpaid') {
+                        chanQuery = chanQuery.where('paymentStatus', '==', 'unpaid');
+                    }
+                    
+                    const chanSnapshot = await chanQuery.get();
+                    chanSnapshot.forEach(doc => {
+                        chandelling.push({ id: doc.id, ...doc.data() });
+                    });
+                }
+                
+                // Generate report content
+                let reportHTML = `
+                    <h4 class="text-primary">${reportTitle}</h4>
+                    <p class="text-muted">Generated on ${new Date().toLocaleString()} | Currency: ${currentCurrency}</p>
+                    <hr>
+                `;
+                
+                if (conveyances.length > 0) {
+                    reportHTML += `
+                        <h5><i class="bi bi-truck"></i> Conveyance Inspections</h5>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Control No</th>
+                                        <th>Date</th>
+                                        <th>Type</th>
+                                        <th>Conveyance</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+                    
+                    let totalConvAmount = 0;
+                    let paidConvCount = 0;
+                    let unpaidConvCount = 0;
+                    
+                    conveyances.forEach(conv => {
+                        totalConvAmount += parseFloat(conv.amount || 0);
+                        if (conv.paymentStatus === 'paid') paidConvCount++;
+                        else unpaidConvCount++;
+                        
+                        reportHTML += `
+                            <tr>
+                                <td>${conv.controlNo}</td>
+                                <td>${conv.inspectionDate ? new Date(conv.inspectionDate).toLocaleDateString() : 'N/A'}</td>
+                                <td>${conv.convType}</td>
+                                <td>${conv.convName}</td>
+                                <td>${formatAmount(conv.amount)}</td>
+                                <td>${conv.paymentStatus === 'paid' ? 
+                                    '<span class="badge-paid">Paid</span>' : 
+                                    '<span class="badge-unpaid">Unpaid</span>'}</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    reportHTML += `
+                                </tbody>
+                                <tfoot>
+                                    <tr class="table-light">
+                                        <td colspan="3"><strong>Summary:</strong></td>
+                                        <td><strong>Total: ${conveyances.length}</strong><br>
+                                            Paid: ${paidConvCount}<br>
+                                            Unpaid: ${unpaidConvCount}</td>
+                                        <td><strong>${formatAmount(totalConvAmount)}</strong></td>
+                                        <td></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    `;
+                }
+                
+                if (chandelling.length > 0) {
+                    reportHTML += `
+                        <h5 class="mt-4"><i class="bi bi-ship"></i> Ship Chandelling</h5>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Control No</th>
+                                        <th>Date</th>
+                                        <th>Company</th>
+                                        <th>Ship Name</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+                    
+                    let totalChanAmount = 0;
+                    let paidChanCount = 0;
+                    let unpaidChanCount = 0;
+                    
+                    chandelling.forEach(chan => {
+                        totalChanAmount += parseFloat(chan.amount || 0);
+                        if (chan.paymentStatus === 'paid') paidChanCount++;
+                        else unpaidChanCount++;
+                        
+                        reportHTML += `
+                            <tr>
+                                <td>${chan.controlNo}</td>
+                                <td>${chan.date ? new Date(chan.date).toLocaleDateString() : 'N/A'}</td>
+                                <td>${chan.company}</td>
+                                <td>${chan.shipName}</td>
+                                <td>${formatAmount(chan.amount)}</td>
+                                <td>${chan.paymentStatus === 'paid' ? 
+                                    '<span class="badge-paid">Paid</span>' : 
+                                    '<span class="badge-unpaid">Unpaid</span>'}</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    reportHTML += `
+                                </tbody>
+                                <tfoot>
+                                    <tr class="table-light">
+                                        <td colspan="3"><strong>Summary:</strong></td>
+                                        <td><strong>Total: ${chandelling.length}</strong><br>
+                                            Paid: ${paidChanCount}<br>
+                                            Unpaid: ${unpaidChanCount}</td>
+                                        <td><strong>${formatAmount(totalChanAmount)}</strong></td>
+                                        <td></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    `;
+                }
+                
+                if (conveyances.length === 0 && chandelling.length === 0) {
+                    reportHTML += `
+                        <div class="text-center py-4">
+                            <i class="bi bi-file-earmark-x" style="font-size: 3rem; color: #ddd;"></i>
+                            <p class="text-muted mt-2">No records found for the selected criteria</p>
+                        </div>
+                    `;
+                } else {
+                    const totalAmount = conveyances.reduce((sum, conv) => sum + parseFloat(conv.amount || 0), 0) +
+                                      chandelling.reduce((sum, chan) => sum + parseFloat(chan.amount || 0), 0);
+                    
+                    const totalRecords = conveyances.length + chandelling.length;
+                    const totalPaid = conveyances.filter(c => c.paymentStatus === 'paid').length +
+                                    chandelling.filter(c => c.paymentStatus === 'paid').length;
+                    const totalUnpaid = totalRecords - totalPaid;
+                    
+                    reportHTML += `
+                        <div class="alert alert-info mt-4">
+                            <h6><i class="bi bi-graph-up"></i> Summary Report</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Total Conveyances:</strong> ${conveyances.length}</p>
+                                    <p><strong>Total Chandelling:</strong> ${chandelling.length}</p>
+                                    <p><strong>Total Records:</strong> ${totalRecords}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Paid Records:</strong> ${totalPaid}</p>
+                                    <p><strong>Unpaid Records:</strong> ${totalUnpaid}</p>
+                                    <p><strong>Total Amount:</strong> ${formatAmount(totalAmount)}</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // Display report
+                document.getElementById('reportPreview').classList.add('d-none');
+                document.getElementById('reportContent').classList.remove('d-none');
+                document.getElementById('reportHeader').innerHTML = `<h4>${reportTitle}</h4>`;
+                document.getElementById('reportData').innerHTML = reportHTML;
+                
+            } catch (error) {
+                console.error('Error generating report:', error);
+                alert('Error generating report: ' + error.message);
+            }
+        }
+
+        function printReport() {
+            const reportContent = document.getElementById('reportData').innerHTML;
+            const reportHeader = document.getElementById('reportHeader').innerHTML;
+            
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Port Health Report</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 20px; }
+                        h4 { color: #2c3e50; margin-bottom: 10px; }
+                        table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+                        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                        th { background-color: #f8f9fa; }
+                        .badge-paid { background: #27ae60; color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.8em; }
+                        .badge-unpaid { background: #e74c3c; color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.8em; }
+                        .alert { padding: 10px; border-radius: 5px; margin: 10px 0; }
+                        .alert-info { background: #d1ecf1; border: 1px solid #bee5eb; }
+                        @media print {
+                            body { margin: 0; padding: 20px; }
+                            .no-print { display: none; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    ${reportHeader}
+                    ${reportContent}
+                    <div class="no-print" style="margin-top: 20px;">
+                        <button onclick="window.print()" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                            Print Report
+                        </button>
+                        <button onclick="window.close()" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px;">
+                            Close
+                        </button>
+                    </div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+
+        function exportReport() {
+            alert('To export as PDF: Click Print Report, then in the print dialog, select "Save as PDF" as your printer.');
+        }
+
+        // Utility Functions
+        function showAlert(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.classList.remove('d-none');
+        }
+
+        function hideAlert(elementId) {
+            const element = document.getElementById(elementId);
+            element.classList.add('d-none');
+        }
+
+        function showSuccess(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.classList.remove('d-none');
+        }
+
+        function clearAlerts() {
+            document.getElementById('loginAlert').classList.add('d-none');
+            document.getElementById('registerAlert').classList.add('d-none');
+            document.getElementById('registerSuccess').classList.add('d-none');
+        }
+
+        function showLoading(btnId, textId, spinnerId) {
+            document.getElementById(textId).classList.add('d-none');
+            document.getElementById(spinnerId).classList.remove('d-none');
+            document.getElementById(btnId).disabled = true;
+        }
+
+        function hideLoading(btnId, textId, spinnerId) {
+            document.getElementById(textId).classList.remove('d-none');
+            document.getElementById(spinnerId).classList.add('d-none');
+            document.getElementById(btnId).disabled = false;
+        }
+
+        function updateCurrentDate() {
+            const now = new Date();
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('currentDate').textContent = now.toLocaleDateString('en-US', options);
+        }
+    </script>
+</body>
+</html>
