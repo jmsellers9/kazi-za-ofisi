@@ -8,6 +8,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <!-- SheetJS for Excel Export -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
@@ -196,6 +198,23 @@
         .unpaid-label {
             color: var(--danger-color);
             font-weight: 600;
+        }
+
+        /* New styles for search and export bar */
+        .action-bar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            gap: 10px;
+        }
+        .search-input {
+            max-width: 300px;
+        }
+        .load-more-btn {
+            margin-top: 1rem;
+            text-align: center;
         }
     </style>
 </head>
@@ -442,7 +461,7 @@
                 </div>
             </div>
 
-            <!-- Conveyance Management -->
+            <!-- Conveyance Management (with search, export, load more) -->
             <div id="conveyancePage" class="d-none">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h2 class="text-primary">
@@ -466,6 +485,17 @@
                     </li>
                 </ul>
 
+                <!-- Search and Export Bar -->
+                <div class="action-bar">
+                    <div class="search-input input-group">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text" id="convSearch" class="form-control" placeholder="Search by Control No, Conveyance, Company...">
+                    </div>
+                    <button class="btn btn-success" onclick="exportConveyanceToExcel()">
+                        <i class="bi bi-file-excel"></i> Export All to Excel
+                    </button>
+                </div>
+
                 <div class="table-responsive">
                     <table class="table table-hover">
                         <thead class="table-dark">
@@ -485,9 +515,14 @@
                         </tbody>
                     </table>
                 </div>
+                <div class="load-more-btn">
+                    <button id="convLoadMoreBtn" class="btn btn-outline-primary" onclick="loadMoreConveyances()">
+                        <i class="bi bi-arrow-down-circle"></i> Load More (20 per page)
+                    </button>
+                </div>
             </div>
 
-            <!-- Ship Chandelling -->
+            <!-- Ship Chandelling (with search, export, load more) -->
             <div id="chandellingPage" class="d-none">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h2 class="text-primary">
@@ -504,6 +539,16 @@
                         <a class="nav-link active" href="#" onclick="filterChandelling('all')">All Records</a>
                     </li>
                 </ul>
+
+                <div class="action-bar">
+                    <div class="search-input input-group">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text" id="chanSearch" class="form-control" placeholder="Search by Control No, Company, Ship...">
+                    </div>
+                    <button class="btn btn-success" onclick="exportChandellingToExcel()">
+                        <i class="bi bi-file-excel"></i> Export All to Excel
+                    </button>
+                </div>
 
                 <div class="table-responsive">
                     <table class="table table-hover">
@@ -523,9 +568,14 @@
                         </tbody>
                     </table>
                 </div>
+                <div class="load-more-btn">
+                    <button id="chanLoadMoreBtn" class="btn btn-outline-primary" onclick="loadMoreChandellings()">
+                        <i class="bi bi-arrow-down-circle"></i> Load More (20 per page)
+                    </button>
+                </div>
             </div>
 
-            <!-- Vaccination Page -->
+            <!-- Vaccination Page (with search, export, load more) -->
             <div id="vaccinationPage" class="d-none">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h2 class="text-primary">
@@ -543,6 +593,16 @@
                     </li>
                 </ul>
 
+                <div class="action-bar">
+                    <div class="search-input input-group">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text" id="vacSearch" class="form-control" placeholder="Search by Control No, Officer...">
+                    </div>
+                    <button class="btn btn-success" onclick="exportVaccinationToExcel()">
+                        <i class="bi bi-file-excel"></i> Export All to Excel
+                    </button>
+                </div>
+
                 <div class="table-responsive">
                     <table class="table table-hover">
                         <thead class="table-dark">
@@ -558,6 +618,11 @@
                             <!-- Vaccination data will be loaded here -->
                         </tbody>
                     </table>
+                </div>
+                <div class="load-more-btn">
+                    <button id="vacLoadMoreBtn" class="btn btn-outline-primary" onclick="loadMoreVaccinations()">
+                        <i class="bi bi-arrow-down-circle"></i> Load More (20 per page)
+                    </button>
                 </div>
             </div>
 
@@ -658,8 +723,7 @@
         </div>
     </div>
 
-    <!-- Modals -->
-    <!-- Add Conveyance Modal -->
+    <!-- Modals (unchanged) -->
     <div class="modal fade" id="addConveyanceModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -832,6 +896,25 @@
         let currentView = 'dashboard';
         let isFirebaseInitialized = false;
 
+        // Pagination state for conveyances
+        let convLastDoc = null;
+        let convAllLoaded = false;
+        let convItems = [];      // stores all loaded items
+        let convCurrentFilter = 'all';
+        let convLoading = false;
+
+        // Pagination state for chandelling
+        let chanLastDoc = null;
+        let chanAllLoaded = false;
+        let chanItems = [];
+        let chanLoading = false;
+
+        // Pagination state for vaccination
+        let vacLastDoc = null;
+        let vacAllLoaded = false;
+        let vacItems = [];
+        let vacLoading = false;
+
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
             // Set default dates
@@ -845,25 +928,28 @@
             document.getElementById('vacDate').value = today;
             document.getElementById('vacExpiry').value = today;
             
-            // Initialize Firebase with hardcoded config
+            // Initialize Firebase
             initializeFirebase(firebaseConfig);
             
             // Setup event listeners
             document.getElementById('loginForm').addEventListener('submit', login);
             document.getElementById('registerForm').addEventListener('submit', register);
             document.getElementById('reportType').addEventListener('change', setupReportForm);
+            
+            // Search event listeners
+            document.getElementById('convSearch').addEventListener('input', () => renderConveyanceTable());
+            document.getElementById('chanSearch').addEventListener('input', () => renderChandellingTable());
+            document.getElementById('vacSearch').addEventListener('input', () => renderVaccinationTable());
         });
 
         // Firebase Initialization
         function initializeFirebase(config) {
             try {
-                // Initialize Firebase
                 firebase.initializeApp(config);
                 auth = firebase.auth();
                 db = firebase.firestore();
                 isFirebaseInitialized = true;
                 
-                // Set up auth state listener
                 auth.onAuthStateChanged(user => {
                     if (user) {
                         currentUser = user;
@@ -875,37 +961,30 @@
                     }
                 });
                 
-                // Auto-show login
                 showLogin();
                 
             } catch (error) {
                 console.error('Firebase initialization error:', error);
-                // Show error on login page
                 showLogin();
                 document.getElementById('loginAlert').textContent = 'Firebase initialization failed. Please check console for details.';
                 document.getElementById('loginAlert').classList.remove('d-none');
             }
         }
 
-        // Authentication Functions
+        // Authentication Functions (unchanged)
         async function login(event) {
             if (event) event.preventDefault();
-            
             if (!isFirebaseInitialized) {
                 alert('System not configured properly. Please contact administrator.');
                 return;
             }
-            
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPassword').value;
-            
             if (!email || !password) {
                 showAlert('loginAlert', 'Please fill in all fields');
                 return;
             }
-            
             showLoading('loginBtn', 'loginText', 'loginSpinner');
-            
             try {
                 const userCredential = await auth.signInWithEmailAndPassword(email, password);
                 currentUser = userCredential.user;
@@ -920,46 +999,36 @@
 
         async function register(event) {
             if (event) event.preventDefault();
-            
             if (!isFirebaseInitialized) {
                 alert('System not configured properly. Please contact administrator.');
                 return;
             }
-            
             const name = document.getElementById('registerName').value;
             const email = document.getElementById('registerEmail').value;
             const password = document.getElementById('registerPassword').value;
             const confirm = document.getElementById('registerConfirm').value;
-            
             if (!name || !email || !password || !confirm) {
                 showAlert('registerAlert', 'Please fill in all fields');
                 return;
             }
-            
             if (password !== confirm) {
                 showAlert('registerAlert', 'Passwords do not match');
                 return;
             }
-            
             if (password.length < 6) {
                 showAlert('registerAlert', 'Password must be at least 6 characters');
                 return;
             }
-            
             showLoading('registerBtn', 'registerText', 'registerSpinner');
-            
             try {
                 const userCredential = await auth.createUserWithEmailAndPassword(email, password);
                 await userCredential.user.updateProfile({ displayName: name });
-                
-                // Create user document in Firestore
                 await db.collection('users').doc(userCredential.user.uid).set({
                     name: name,
                     email: email,
                     role: 'officer',
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
-                
                 showSuccess('registerSuccess', 'Account created successfully!');
                 setTimeout(() => {
                     showLogin();
@@ -1021,11 +1090,8 @@
             hideAllPages();
             document.getElementById('conveyancePage').classList.remove('d-none');
             currentView = 'conveyance';
-            
-            // Use stored tab state if no filter provided
             const tabState = filter || getTabState('conveyance');
             filterConveyance(tabState);
-            
             // Update active tab visually
             const tabs = document.querySelectorAll('#conveyanceTabs .nav-link');
             tabs.forEach(tab => tab.classList.remove('active'));
@@ -1041,12 +1107,8 @@
             hideAllPages();
             document.getElementById('chandellingPage').classList.remove('d-none');
             currentView = 'chandelling';
-            
-            // Use stored tab state
             const tabState = getTabState('chandelling');
             filterChandelling(tabState);
-            
-            // Update active tab visually
             const tabs = document.querySelectorAll('#chandellingTabs .nav-link');
             tabs.forEach(tab => tab.classList.remove('active'));
             tabs.forEach(tab => {
@@ -1061,7 +1123,6 @@
             hideAllPages();
             document.getElementById('vaccinationPage').classList.remove('d-none');
             currentView = 'vaccination';
-            
             const tabState = getTabState('vaccination') || 'all';
             filterVaccination(tabState);
         }
@@ -1081,7 +1142,6 @@
             document.getElementById('reportPage').classList.add('d-none');
         }
 
-        // Seamless tab transmission - Store tab state
         function storeTabState(tabType, filter) {
             localStorage.setItem(`${tabType}TabState`, filter);
         }
@@ -1093,22 +1153,18 @@
         // Data Management Functions
         async function loadUserData() {
             if (!currentUser) return;
-            
             try {
                 const userDoc = await db.collection('users').doc(currentUser.uid).get();
                 if (userDoc.exists) {
                     const userData = userDoc.data();
-                    // Display user email as the user name
                     document.getElementById('userName').textContent = userData.email || currentUser.email;
                     document.getElementById('userRole').textContent = userData.role;
                 } else {
-                    // If no user document, use email
                     document.getElementById('userName').textContent = currentUser.email;
                     document.getElementById('userRole').textContent = 'Officer';
                 }
             } catch (error) {
                 console.error('Error loading user data:', error);
-                // Fallback to email
                 document.getElementById('userName').textContent = currentUser.email;
                 document.getElementById('userRole').textContent = 'Officer';
             }
@@ -1116,23 +1172,14 @@
 
         async function loadDashboard() {
             if (!currentUser) return;
-            
             try {
-                // Load all conveyances
                 const conveyanceSnapshot = await db.collection('conveyances').get();
                 document.getElementById('totalConveyance').textContent = conveyanceSnapshot.size;
-                
-                // Load all chandelling
                 const chandellingSnapshot = await db.collection('chandelling').get();
                 document.getElementById('totalChandelling').textContent = chandellingSnapshot.size;
-                
-                // Load all vaccination
                 const vaccinationSnapshot = await db.collection('vaccination').get();
                 document.getElementById('totalVaccination').textContent = vaccinationSnapshot.size;
-                
-                // Load recent activity
                 loadRecentActivity();
-                
             } catch (error) {
                 console.error('Error loading dashboard:', error);
             }
@@ -1140,53 +1187,27 @@
 
         async function loadRecentActivity() {
             if (!currentUser) return;
-            
             try {
                 const activityTable = document.getElementById('recentActivity');
                 activityTable.innerHTML = '';
-                
-                // Get recent conveyances
-                const convSnapshot = await db.collection('conveyances')
-                    .orderBy('createdAt', 'desc')
-                    .limit(5)
-                    .get();
-                
+                const convSnapshot = await db.collection('conveyances').orderBy('createdAt', 'desc').limit(5).get();
                 convSnapshot.forEach(doc => {
                     const data = doc.data();
-                    const row = createActivityRow('Conveyance', data.controlNo, 
-                        `${data.convName} - ${data.convType}`, 
-                        data.inspectionDate);
+                    const row = createActivityRow('Conveyance', data.controlNo, `${data.convName} - ${data.convType}`, data.inspectionDate);
                     activityTable.appendChild(row);
                 });
-                
-                // Get recent chandelling
-                const chanSnapshot = await db.collection('chandelling')
-                    .orderBy('createdAt', 'desc')
-                    .limit(5)
-                    .get();
-                
+                const chanSnapshot = await db.collection('chandelling').orderBy('createdAt', 'desc').limit(5).get();
                 chanSnapshot.forEach(doc => {
                     const data = doc.data();
-                    const row = createActivityRow('Chandelling', data.controlNo,
-                        `${data.company} - ${data.shipName}`,
-                        data.date);
+                    const row = createActivityRow('Chandelling', data.controlNo, `${data.company} - ${data.shipName}`, data.date);
                     activityTable.appendChild(row);
                 });
-                
-                // Get recent vaccination
-                const vacSnapshot = await db.collection('vaccination')
-                    .orderBy('createdAt', 'desc')
-                    .limit(5)
-                    .get();
-                
+                const vacSnapshot = await db.collection('vaccination').orderBy('createdAt', 'desc').limit(5).get();
                 vacSnapshot.forEach(doc => {
                     const data = doc.data();
-                    const row = createActivityRow('Vaccination', data.controlNo,
-                        `${data.officerInCharge}`,
-                        data.dateProvided);
+                    const row = createActivityRow('Vaccination', data.controlNo, `${data.officerInCharge}`, data.dateProvided);
                     activityTable.appendChild(row);
                 });
-                
             } catch (error) {
                 console.error('Error loading recent activity:', error);
             }
@@ -1194,7 +1215,6 @@
 
         function createActivityRow(type, controlNo, description, date) {
             const row = document.createElement('tr');
-            
             row.innerHTML = `
                 <td><strong>${type}</strong></td>
                 <td>${controlNo || 'N/A'}</td>
@@ -1204,282 +1224,139 @@
             return row;
         }
 
-        // Conveyance Functions
-        function showAddConveyance(type = null) {
-            const modal = new bootstrap.Modal(document.getElementById('addConveyanceModal'));
-            document.getElementById('conveyanceForm').reset();
-            hideAlert('conveyanceAlert');
-            
-            // Set default values
-            document.getElementById('convDate').value = new Date().toISOString().split('T')[0];
-            
-            if (type) {
-                document.getElementById('convType').value = type;
-            }
-            
-            modal.show();
-        }
-
-        async function saveConveyance() {
-            if (!currentUser) return;
-            
-            const controlNo = document.getElementById('controlNo').value.trim();
-            const convType = document.getElementById('convType').value;
-            const inspectionDate = document.getElementById('convDate').value;
-            const convName = document.getElementById('convName').value.trim();
-            const companyName = document.getElementById('companyName').value.trim();
-            const officerInCharge = document.getElementById('officerInCharge').value.trim();
-            const expiryDate = document.getElementById('expiryDate').value;
-            
-            // Validation
-            if (!controlNo || !convType || !inspectionDate || !convName) {
-                showAlert('conveyanceAlert', 'Please fill in all required fields (*)');
-                return;
-            }
-            
-            // Check if control number already exists
-            const existing = await db.collection('conveyances')
-                .where('controlNo', '==', controlNo)
-                .get();
-            
-            if (!existing.empty) {
-                showAlert('conveyanceAlert', 'This control number already exists. Please use a different one.');
-                return;
-            }
-            
-            const formData = {
-                controlNo: controlNo,
-                convType: convType,
-                inspectionDate: inspectionDate,
-                convName: convName,
-                companyName: companyName || '',
-                officerInCharge: officerInCharge || '',
-                expiryDate: expiryDate || '',
-                paymentStatus: 'unpaid', // Default to unpaid
-                createdBy: currentUser.uid,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
-            
-            try {
-                await db.collection('conveyances').add(formData);
-                bootstrap.Modal.getInstance(document.getElementById('addConveyanceModal')).hide();
-                alert('Conveyance record saved successfully!');
-                // Refresh dashboard and recent activity
-                loadDashboard();
-                loadRecentActivity();
-                if (currentView === 'conveyance') filterConveyance('all');
-            } catch (error) {
-                showAlert('conveyanceAlert', 'Error saving record: ' + error.message);
-            }
-        }
-
+        // Conveyance Functions with pagination
         async function filterConveyance(filter) {
+            convCurrentFilter = filter;
+            convLastDoc = null;
+            convAllLoaded = false;
+            convItems = [];
+            await loadMoreConveyances(true); // true = reset
+        }
+
+        async function loadMoreConveyances(reset = false) {
             if (!currentUser) return;
-            
+            if (convLoading) return;
+            if (convAllLoaded && !reset) return;
+            convLoading = true;
             try {
                 let query = db.collection('conveyances');
-                
-                switch(filter) {
-                    case 'domestic':
-                        query = query.where('convType', '==', 'domestic');
-                        break;
-                    case 'international':
-                        query = query.where('convType', '==', 'international');
-                        break;
+                if (convCurrentFilter !== 'all') {
+                    query = query.where('convType', '==', convCurrentFilter);
                 }
-                
-                const snapshot = await query.orderBy('createdAt', 'desc').get();
-                renderConveyanceTable(snapshot);
-                
-                // Store tab state for seamless transmission
-                storeTabState('conveyance', filter);
+                query = query.orderBy('createdAt', 'desc').limit(20);
+                if (convLastDoc && !reset) {
+                    query = query.startAfter(convLastDoc);
+                }
+                const snapshot = await query.get();
+                if (snapshot.empty) {
+                    convAllLoaded = true;
+                } else {
+                    convLastDoc = snapshot.docs[snapshot.docs.length - 1];
+                    snapshot.forEach(doc => {
+                        convItems.push({ id: doc.id, ...doc.data() });
+                    });
+                }
+                renderConveyanceTable();
+                const loadMoreBtn = document.getElementById('convLoadMoreBtn');
+                if (loadMoreBtn) {
+                    loadMoreBtn.style.display = convAllLoaded ? 'none' : 'inline-block';
+                }
             } catch (error) {
-                console.error('Error filtering conveyances:', error);
+                console.error('Error loading conveyances:', error);
+            } finally {
+                convLoading = false;
             }
         }
 
-        function renderConveyanceTable(snapshot) {
+        function renderConveyanceTable() {
+            const searchTerm = document.getElementById('convSearch').value.toLowerCase();
+            let filtered = convItems.filter(item => 
+                (item.controlNo && item.controlNo.toLowerCase().includes(searchTerm)) ||
+                (item.convName && item.convName.toLowerCase().includes(searchTerm)) ||
+                (item.companyName && item.companyName.toLowerCase().includes(searchTerm))
+            );
             const tableBody = document.getElementById('conveyanceTable');
             tableBody.innerHTML = '';
-            
-            if (snapshot.empty) {
-                tableBody.innerHTML = `
-                    <tr>
-                        <td colspan="8" class="text-center py-4">
-                            <i class="bi bi-inbox" style="font-size: 2rem; color: #ddd;"></i>
-                            <p class="text-muted mt-2">No records found</p>
-                        </td>
-                    </tr>
-                `;
+            if (filtered.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="8" class="text-center py-4"><i class="bi bi-inbox" style="font-size: 2rem; color: #ddd;"></i><p class="text-muted mt-2">No records found</p></td></tr>';
                 return;
             }
-            
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                const row = document.createElement('tr');
+            filtered.forEach(data => {
                 const isPaid = data.paymentStatus === 'paid';
-                
+                const row = document.createElement('tr');
                 row.innerHTML = `
                     <td><strong>${data.controlNo}</strong></td>
                     <td>${data.inspectionDate ? new Date(data.inspectionDate).toLocaleDateString() : 'N/A'}</td>
-                    <td><span class="badge ${data.convType === 'domestic' ? 'bg-info' : 'bg-warning'}">
-                        ${data.convType}
-                    </span></td>
+                    <td><span class="badge ${data.convType === 'domestic' ? 'bg-info' : 'bg-warning'}">${data.convType}</span></td>
                     <td>${data.convName}</td>
                     <td>${data.companyName || 'N/A'}</td>
                     <td>${data.officerInCharge || 'N/A'}</td>
                     <td>${data.expiryDate || 'N/A'}</td>
                     <td>
                         <input type="checkbox" class="payment-checkbox" ${isPaid ? 'checked' : ''} 
-                               onchange="togglePaymentStatus('conveyance', '${doc.id}', this.checked)"
-                               title="${isPaid ? 'Mark as unpaid' : 'Mark as paid'}">
-                        <span class="${isPaid ? 'paid-label' : 'unpaid-label'} ms-2">
-                            ${isPaid ? 'Paid' : 'Unpaid'}
-                        </span>
+                               onchange="togglePaymentStatus('conveyance', '${data.id}', this.checked)">
+                        <span class="${isPaid ? 'paid-label' : 'unpaid-label'} ms-2">${isPaid ? 'Paid' : 'Unpaid'}</span>
                     </td>
                 `;
                 tableBody.appendChild(row);
             });
         }
 
-        // Checkbox toggle function for payment status
-        async function togglePaymentStatus(type, id, isChecked) {
-            if (!currentUser) return;
-            
-            try {
-                const paymentStatus = isChecked ? 'paid' : 'unpaid';
-                const paymentData = {
-                    paymentStatus: paymentStatus,
-                    paymentDate: isChecked ? new Date().toISOString().split('T')[0] : '',
-                    paidBy: isChecked ? currentUser.uid : '',
-                    paidAt: isChecked ? firebase.firestore.FieldValue.serverTimestamp() : null,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                };
-                
-                let docRef;
-                if (type === 'conveyance') {
-                    docRef = db.collection('conveyances').doc(id);
-                } else if (type === 'chandelling') {
-                    docRef = db.collection('chandelling').doc(id);
-                } else if (type === 'vaccination') {
-                    docRef = db.collection('vaccination').doc(id);
-                }
-                
-                await docRef.update(paymentData);
-                
-                // Refresh the current view
-                if (currentView === 'conveyance') filterConveyance('all');
-                else if (currentView === 'chandelling') filterChandelling('all');
-                else if (currentView === 'vaccination') filterVaccination('all');
-                
-            } catch (error) {
-                console.error('Error updating payment status:', error);
-                alert('Error updating payment status. Please try again.');
-            }
-        }
-
-        // Chandelling Functions
-        function showAddChandelling() {
-            const modal = new bootstrap.Modal(document.getElementById('addChandellingModal'));
-            document.getElementById('chandellingForm').reset();
-            hideAlert('chandellingAlert');
-            
-            // Set default date
-            document.getElementById('chanDate').value = new Date().toISOString().split('T')[0];
-            
-            modal.show();
-        }
-
-        async function saveChandelling() {
-            if (!currentUser) return;
-            
-            const controlNo = document.getElementById('chanControlNo').value.trim();
-            const date = document.getElementById('chanDate').value;
-            const company = document.getElementById('chanCompany').value.trim();
-            const shipName = document.getElementById('shipName').value.trim();
-            const officerInCharge = document.getElementById('chanOfficerInCharge').value.trim();
-            const expiryDate = document.getElementById('chanExpiryDate').value;
-            
-            // Validation
-            if (!controlNo || !date || !company || !shipName) {
-                showAlert('chandellingAlert', 'Please fill in all required fields (*)');
-                return;
-            }
-            
-            // Check if control number already exists
-            const existing = await db.collection('chandelling')
-                .where('controlNo', '==', controlNo)
-                .get();
-            
-            if (!existing.empty) {
-                showAlert('chandellingAlert', 'This control number already exists. Please use a different one.');
-                return;
-            }
-            
-            const formData = {
-                controlNo: controlNo,
-                date: date,
-                company: company,
-                shipName: shipName,
-                officerInCharge: officerInCharge || '',
-                expiryDate: expiryDate || '',
-                paymentStatus: 'unpaid', // Default to unpaid
-                createdBy: currentUser.uid,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
-            
-            try {
-                await db.collection('chandelling').add(formData);
-                bootstrap.Modal.getInstance(document.getElementById('addChandellingModal')).hide();
-                alert('Chandelling record saved successfully!');
-                // Refresh dashboard and recent activity
-                loadDashboard();
-                loadRecentActivity();
-                if (currentView === 'chandelling') filterChandelling('all');
-            } catch (error) {
-                showAlert('chandellingAlert', 'Error saving record: ' + error.message);
-            }
-        }
-
+        // Chandelling Functions with pagination
         async function filterChandelling(filter) {
+            chanLastDoc = null;
+            chanAllLoaded = false;
+            chanItems = [];
+            await loadMoreChandellings(true);
+        }
+
+        async function loadMoreChandellings(reset = false) {
             if (!currentUser) return;
-            
+            if (chanLoading) return;
+            if (chanAllLoaded && !reset) return;
+            chanLoading = true;
             try {
-                let query = db.collection('chandelling');
-                
-                const snapshot = await query.orderBy('createdAt', 'desc').get();
-                renderChandellingTable(snapshot);
-                
-                // Store tab state for seamless transmission
-                storeTabState('chandelling', filter);
+                let query = db.collection('chandelling').orderBy('createdAt', 'desc').limit(20);
+                if (chanLastDoc && !reset) {
+                    query = query.startAfter(chanLastDoc);
+                }
+                const snapshot = await query.get();
+                if (snapshot.empty) {
+                    chanAllLoaded = true;
+                } else {
+                    chanLastDoc = snapshot.docs[snapshot.docs.length - 1];
+                    snapshot.forEach(doc => {
+                        chanItems.push({ id: doc.id, ...doc.data() });
+                    });
+                }
+                renderChandellingTable();
+                const loadMoreBtn = document.getElementById('chanLoadMoreBtn');
+                if (loadMoreBtn) {
+                    loadMoreBtn.style.display = chanAllLoaded ? 'none' : 'inline-block';
+                }
             } catch (error) {
-                console.error('Error filtering chandelling:', error);
+                console.error('Error loading chandelling:', error);
+            } finally {
+                chanLoading = false;
             }
         }
 
-        function renderChandellingTable(snapshot) {
+        function renderChandellingTable() {
+            const searchTerm = document.getElementById('chanSearch').value.toLowerCase();
+            let filtered = chanItems.filter(item => 
+                (item.controlNo && item.controlNo.toLowerCase().includes(searchTerm)) ||
+                (item.company && item.company.toLowerCase().includes(searchTerm)) ||
+                (item.shipName && item.shipName.toLowerCase().includes(searchTerm))
+            );
             const tableBody = document.getElementById('chandellingTable');
             tableBody.innerHTML = '';
-            
-            if (snapshot.empty) {
-                tableBody.innerHTML = `
-                    <tr>
-                        <td colspan="7" class="text-center py-4">
-                            <i class="bi bi-inbox" style="font-size: 2rem; color: #ddd;"></i>
-                            <p class="text-muted mt-2">No records found</p>
-                        </td>
-                    </tr>
-                `;
+            if (filtered.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="7" class="text-center py-4"><i class="bi bi-inbox" style="font-size: 2rem; color: #ddd;"></i><p class="text-muted mt-2">No records found</p></td></tr>';
                 return;
             }
-            
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                const row = document.createElement('tr');
+            filtered.forEach(data => {
                 const isPaid = data.paymentStatus === 'paid';
-                
+                const row = document.createElement('tr');
                 row.innerHTML = `
                     <td><strong>${data.controlNo}</strong></td>
                     <td>${data.date ? new Date(data.date).toLocaleDateString() : 'N/A'}</td>
@@ -1489,70 +1366,233 @@
                     <td>${data.expiryDate || 'N/A'}</td>
                     <td>
                         <input type="checkbox" class="payment-checkbox" ${isPaid ? 'checked' : ''} 
-                               onchange="togglePaymentStatus('chandelling', '${doc.id}', this.checked)"
-                               title="${isPaid ? 'Mark as unpaid' : 'Mark as paid'}">
-                        <span class="${isPaid ? 'paid-label' : 'unpaid-label'} ms-2">
-                            ${isPaid ? 'Paid' : 'Unpaid'}
-                        </span>
+                               onchange="togglePaymentStatus('chandelling', '${data.id}', this.checked)">
+                        <span class="${isPaid ? 'paid-label' : 'unpaid-label'} ms-2">${isPaid ? 'Paid' : 'Unpaid'}</span>
                     </td>
                 `;
                 tableBody.appendChild(row);
             });
         }
 
-        // Vaccination Functions
+        // Vaccination Functions with pagination
+        async function filterVaccination(filter) {
+            vacLastDoc = null;
+            vacAllLoaded = false;
+            vacItems = [];
+            await loadMoreVaccinations(true);
+        }
+
+        async function loadMoreVaccinations(reset = false) {
+            if (!currentUser) return;
+            if (vacLoading) return;
+            if (vacAllLoaded && !reset) return;
+            vacLoading = true;
+            try {
+                let query = db.collection('vaccination').orderBy('createdAt', 'desc').limit(20);
+                if (vacLastDoc && !reset) {
+                    query = query.startAfter(vacLastDoc);
+                }
+                const snapshot = await query.get();
+                if (snapshot.empty) {
+                    vacAllLoaded = true;
+                } else {
+                    vacLastDoc = snapshot.docs[snapshot.docs.length - 1];
+                    snapshot.forEach(doc => {
+                        vacItems.push({ id: doc.id, ...doc.data() });
+                    });
+                }
+                renderVaccinationTable();
+                const loadMoreBtn = document.getElementById('vacLoadMoreBtn');
+                if (loadMoreBtn) {
+                    loadMoreBtn.style.display = vacAllLoaded ? 'none' : 'inline-block';
+                }
+            } catch (error) {
+                console.error('Error loading vaccinations:', error);
+            } finally {
+                vacLoading = false;
+            }
+        }
+
+        function renderVaccinationTable() {
+            const searchTerm = document.getElementById('vacSearch').value.toLowerCase();
+            let filtered = vacItems.filter(item => 
+                (item.controlNo && item.controlNo.toLowerCase().includes(searchTerm)) ||
+                (item.officerInCharge && item.officerInCharge.toLowerCase().includes(searchTerm))
+            );
+            const tableBody = document.getElementById('vaccinationTable');
+            tableBody.innerHTML = '';
+            if (filtered.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="5" class="text-center py-4"><i class="bi bi-inbox" style="font-size: 2rem; color: #ddd;"></i><p class="text-muted mt-2">No records found</p></td></tr>';
+                return;
+            }
+            filtered.forEach(data => {
+                const isPaid = data.paymentStatus === 'paid';
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${data.controlNo}</strong></td>
+                    <td>${data.officerInCharge}</td>
+                    <td>${data.expiryDate || 'N/A'}</td>
+                    <td>${data.dateProvided ? new Date(data.dateProvided).toLocaleDateString() : 'N/A'}</td>
+                    <td>
+                        <input type="checkbox" class="payment-checkbox" ${isPaid ? 'checked' : ''} 
+                               onchange="togglePaymentStatus('vaccination', '${data.id}', this.checked)">
+                        <span class="${isPaid ? 'paid-label' : 'unpaid-label'} ms-2">${isPaid ? 'Paid' : 'Unpaid'}</span>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Checkbox toggle function for payment status (unchanged logic, just refresh paginated views)
+        async function togglePaymentStatus(type, id, isChecked) {
+            if (!currentUser) return;
+            try {
+                const paymentStatus = isChecked ? 'paid' : 'unpaid';
+                const paymentData = {
+                    paymentStatus: paymentStatus,
+                    paymentDate: isChecked ? new Date().toISOString().split('T')[0] : '',
+                    paidBy: isChecked ? currentUser.uid : '',
+                    paidAt: isChecked ? firebase.firestore.FieldValue.serverTimestamp() : null,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                let docRef;
+                if (type === 'conveyance') docRef = db.collection('conveyances').doc(id);
+                else if (type === 'chandelling') docRef = db.collection('chandelling').doc(id);
+                else if (type === 'vaccination') docRef = db.collection('vaccination').doc(id);
+                await docRef.update(paymentData);
+                // Refresh current view
+                if (currentView === 'conveyance') filterConveyance(convCurrentFilter);
+                else if (currentView === 'chandelling') filterChandelling('all');
+                else if (currentView === 'vaccination') filterVaccination('all');
+            } catch (error) {
+                console.error('Error updating payment status:', error);
+                alert('Error updating payment status. Please try again.');
+            }
+        }
+
+        // Add/Edit functions (unchanged except refresh pagination)
+        function showAddConveyance(type = null) {
+            const modal = new bootstrap.Modal(document.getElementById('addConveyanceModal'));
+            document.getElementById('conveyanceForm').reset();
+            hideAlert('conveyanceAlert');
+            document.getElementById('convDate').value = new Date().toISOString().split('T')[0];
+            if (type) document.getElementById('convType').value = type;
+            modal.show();
+        }
+
+        async function saveConveyance() {
+            if (!currentUser) return;
+            const controlNo = document.getElementById('controlNo').value.trim();
+            const convType = document.getElementById('convType').value;
+            const inspectionDate = document.getElementById('convDate').value;
+            const convName = document.getElementById('convName').value.trim();
+            const companyName = document.getElementById('companyName').value.trim();
+            const officerInCharge = document.getElementById('officerInCharge').value.trim();
+            const expiryDate = document.getElementById('expiryDate').value;
+            if (!controlNo || !convType || !inspectionDate || !convName) {
+                showAlert('conveyanceAlert', 'Please fill in all required fields (*)');
+                return;
+            }
+            const existing = await db.collection('conveyances').where('controlNo', '==', controlNo).get();
+            if (!existing.empty) {
+                showAlert('conveyanceAlert', 'This control number already exists. Please use a different one.');
+                return;
+            }
+            const formData = {
+                controlNo, convType, inspectionDate, convName, companyName: companyName || '',
+                officerInCharge: officerInCharge || '', expiryDate: expiryDate || '', paymentStatus: 'unpaid',
+                createdBy: currentUser.uid, createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            try {
+                await db.collection('conveyances').add(formData);
+                bootstrap.Modal.getInstance(document.getElementById('addConveyanceModal')).hide();
+                alert('Conveyance record saved successfully!');
+                loadDashboard();
+                loadRecentActivity();
+                if (currentView === 'conveyance') filterConveyance(convCurrentFilter);
+            } catch (error) {
+                showAlert('conveyanceAlert', 'Error saving record: ' + error.message);
+            }
+        }
+
+        function showAddChandelling() {
+            const modal = new bootstrap.Modal(document.getElementById('addChandellingModal'));
+            document.getElementById('chandellingForm').reset();
+            hideAlert('chandellingAlert');
+            document.getElementById('chanDate').value = new Date().toISOString().split('T')[0];
+            modal.show();
+        }
+
+        async function saveChandelling() {
+            if (!currentUser) return;
+            const controlNo = document.getElementById('chanControlNo').value.trim();
+            const date = document.getElementById('chanDate').value;
+            const company = document.getElementById('chanCompany').value.trim();
+            const shipName = document.getElementById('shipName').value.trim();
+            const officerInCharge = document.getElementById('chanOfficerInCharge').value.trim();
+            const expiryDate = document.getElementById('chanExpiryDate').value;
+            if (!controlNo || !date || !company || !shipName) {
+                showAlert('chandellingAlert', 'Please fill in all required fields (*)');
+                return;
+            }
+            const existing = await db.collection('chandelling').where('controlNo', '==', controlNo).get();
+            if (!existing.empty) {
+                showAlert('chandellingAlert', 'This control number already exists. Please use a different one.');
+                return;
+            }
+            const formData = {
+                controlNo, date, company, shipName, officerInCharge: officerInCharge || '',
+                expiryDate: expiryDate || '', paymentStatus: 'unpaid',
+                createdBy: currentUser.uid, createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            try {
+                await db.collection('chandelling').add(formData);
+                bootstrap.Modal.getInstance(document.getElementById('addChandellingModal')).hide();
+                alert('Chandelling record saved successfully!');
+                loadDashboard();
+                loadRecentActivity();
+                if (currentView === 'chandelling') filterChandelling('all');
+            } catch (error) {
+                showAlert('chandellingAlert', 'Error saving record: ' + error.message);
+            }
+        }
+
         function showAddVaccination() {
             const modal = new bootstrap.Modal(document.getElementById('addVaccinationModal'));
             document.getElementById('vaccinationForm').reset();
             hideAlert('vaccinationAlert');
-            
-            // Set default dates
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('vacDate').value = today;
             document.getElementById('vacExpiry').value = today;
-            
             modal.show();
         }
 
         async function saveVaccination() {
             if (!currentUser) return;
-            
             const controlNo = document.getElementById('vacControlNo').value.trim();
             const officer = document.getElementById('vacOfficer').value.trim();
             const expiryDate = document.getElementById('vacExpiry').value;
             const dateProvided = document.getElementById('vacDate').value;
-            
             if (!controlNo || !officer || !expiryDate || !dateProvided) {
                 showAlert('vaccinationAlert', 'Please fill in all required fields (*)');
                 return;
             }
-            
-            // Check if control number already exists
-            const existing = await db.collection('vaccination')
-                .where('controlNo', '==', controlNo)
-                .get();
-            
+            const existing = await db.collection('vaccination').where('controlNo', '==', controlNo).get();
             if (!existing.empty) {
                 showAlert('vaccinationAlert', 'This control number already exists.');
                 return;
             }
-            
             const formData = {
-                controlNo: controlNo,
-                officerInCharge: officer,
-                expiryDate: expiryDate,
-                dateProvided: dateProvided,
-                paymentStatus: 'unpaid', // Default to unpaid
-                createdBy: currentUser.uid,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                controlNo, officerInCharge: officer, expiryDate, dateProvided, paymentStatus: 'unpaid',
+                createdBy: currentUser.uid, createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
-            
             try {
                 await db.collection('vaccination').add(formData);
                 bootstrap.Modal.getInstance(document.getElementById('addVaccinationModal')).hide();
                 alert('Vaccination record saved successfully!');
-                // Refresh dashboard and recent activity
                 loadDashboard();
                 loadRecentActivity();
                 if (currentView === 'vaccination') filterVaccination('all');
@@ -1561,89 +1601,73 @@
             }
         }
 
-        async function filterVaccination(filter) {
-            if (!currentUser) return;
-            
-            try {
-                let query = db.collection('vaccination');
-                
-                const snapshot = await query.orderBy('createdAt', 'desc').get();
-                renderVaccinationTable(snapshot);
-                
-                storeTabState('vaccination', filter);
-            } catch (error) {
-                console.error('Error filtering vaccination:', error);
-            }
-        }
-
-        function renderVaccinationTable(snapshot) {
-            const tableBody = document.getElementById('vaccinationTable');
-            tableBody.innerHTML = '';
-            
-            if (snapshot.empty) {
-                tableBody.innerHTML = `
-                    <tr>
-                        <td colspan="5" class="text-center py-4">
-                            <i class="bi bi-inbox" style="font-size: 2rem; color: #ddd;"></i>
-                            <p class="text-muted mt-2">No records found</p>
-                        </td>
-                    </tr>
-                `;
-                return;
-            }
-            
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                const row = document.createElement('tr');
-                const isPaid = data.paymentStatus === 'paid';
-                
-                row.innerHTML = `
-                    <td><strong>${data.controlNo}</strong></td>
-                    <td>${data.officerInCharge}</td>
-                    <td>${data.expiryDate || 'N/A'}</td>
-                    <td>${data.dateProvided ? new Date(data.dateProvided).toLocaleDateString() : 'N/A'}</td>
-                    <td>
-                        <input type="checkbox" class="payment-checkbox" ${isPaid ? 'checked' : ''} 
-                               onchange="togglePaymentStatus('vaccination', '${doc.id}', this.checked)"
-                               title="${isPaid ? 'Mark as unpaid' : 'Mark as paid'}">
-                        <span class="${isPaid ? 'paid-label' : 'unpaid-label'} ms-2">
-                            ${isPaid ? 'Paid' : 'Unpaid'}
-                        </span>
-                    </td>
-                `;
-                tableBody.appendChild(row);
+        // Export to Excel functions (export ALL records from Firestore)
+        async function exportConveyanceToExcel() {
+            const snapshot = await db.collection('conveyances').get();
+            const data = snapshot.docs.map(doc => doc.data());
+            const wsData = [["Control No","Inspection Date","Type","Conveyance","Company","Officer","Expiry Date","Payment Status"]];
+            data.forEach(item => {
+                wsData.push([
+                    item.controlNo || '', item.inspectionDate || '', item.convType || '', item.convName || '',
+                    item.companyName || '', item.officerInCharge || '', item.expiryDate || '',
+                    item.paymentStatus === 'paid' ? 'Paid' : 'Unpaid'
+                ]);
             });
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(wsData), "Conveyances");
+            XLSX.writeFile(wb, "Conveyance_Export.xlsx");
         }
 
-        // Report Functions
+        async function exportChandellingToExcel() {
+            const snapshot = await db.collection('chandelling').get();
+            const data = snapshot.docs.map(doc => doc.data());
+            const wsData = [["Control No","Date","Company","Ship Name","Officer","Expiry Date","Payment Status"]];
+            data.forEach(item => {
+                wsData.push([
+                    item.controlNo || '', item.date || '', item.company || '', item.shipName || '',
+                    item.officerInCharge || '', item.expiryDate || '',
+                    item.paymentStatus === 'paid' ? 'Paid' : 'Unpaid'
+                ]);
+            });
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(wsData), "Chandelling");
+            XLSX.writeFile(wb, "Chandelling_Export.xlsx");
+        }
+
+        async function exportVaccinationToExcel() {
+            const snapshot = await db.collection('vaccination').get();
+            const data = snapshot.docs.map(doc => doc.data());
+            const wsData = [["Control No","Officer In Charge","Expiry Date","Date Provided","Payment Status"]];
+            data.forEach(item => {
+                wsData.push([
+                    item.controlNo || '', item.officerInCharge || '', item.expiryDate || '',
+                    item.dateProvided || '', item.paymentStatus === 'paid' ? 'Paid' : 'Unpaid'
+                ]);
+            });
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(wsData), "Vaccination");
+            XLSX.writeFile(wb, "Vaccination_Export.xlsx");
+        }
+
+        // Report Functions (unchanged)
         function setupReportForm() {
             const reportType = document.getElementById('reportType');
-            
             reportType.addEventListener('change', function() {
                 document.getElementById('dailyDate').classList.add('d-none');
                 document.getElementById('monthlyDate').classList.add('d-none');
                 document.getElementById('customDate').classList.add('d-none');
-                
-                if (this.value === 'daily') {
-                    document.getElementById('dailyDate').classList.remove('d-none');
-                } else if (this.value === 'monthly') {
-                    document.getElementById('monthlyDate').classList.remove('d-none');
-                } else if (this.value === 'custom') {
-                    document.getElementById('customDate').classList.remove('d-none');
-                }
+                if (this.value === 'daily') document.getElementById('dailyDate').classList.remove('d-none');
+                else if (this.value === 'monthly') document.getElementById('monthlyDate').classList.remove('d-none');
+                else if (this.value === 'custom') document.getElementById('customDate').classList.remove('d-none');
             });
         }
 
         async function generateReport() {
             if (!currentUser) return;
-            
             try {
                 const reportType = document.getElementById('reportType').value;
                 const reportFor = document.getElementById('reportFor').value;
-                
                 let startDate, endDate;
-                
-                // Calculate date range based on report type
                 if (reportType === 'daily') {
                     const date = new Date(document.getElementById('reportDate').value);
                     startDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
@@ -1654,242 +1678,63 @@
                     startDate = new Date(year, monthNum - 1, 1);
                     endDate = new Date(year, monthNum, 0);
                     endDate.setHours(23, 59, 59, 999);
-                } else if (reportType === 'custom') {
+                } else {
                     startDate = new Date(document.getElementById('startDate').value);
                     endDate = new Date(document.getElementById('endDate').value);
                     endDate.setHours(23, 59, 59, 999);
                 }
-                
-                // Generate report header
                 let reportTitle = '';
-                if (reportType === 'daily') {
-                    reportTitle = `Daily Report for ${startDate.toLocaleDateString()}`;
-                } else if (reportType === 'monthly') {
-                    reportTitle = `Monthly Report for ${startDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`;
-                } else {
-                    reportTitle = `Custom Report from ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`;
-                }
-                
-                // Fetch data based on selection
-                let conveyances = [];
-                let chandelling = [];
-                let vaccination = [];
-                
+                if (reportType === 'daily') reportTitle = `Daily Report for ${startDate.toLocaleDateString()}`;
+                else if (reportType === 'monthly') reportTitle = `Monthly Report for ${startDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`;
+                else reportTitle = `Custom Report from ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`;
+                let conveyances = [], chandelling = [], vaccination = [];
                 if (reportFor === 'all' || reportFor === 'conveyance') {
-                    let convQuery = db.collection('conveyances');
-                    
-                    // Apply date filter
-                    convQuery = convQuery.where('createdAt', '>=', startDate)
-                                         .where('createdAt', '<=', endDate);
-                    
+                    let convQuery = db.collection('conveyances').where('createdAt', '>=', startDate).where('createdAt', '<=', endDate);
                     const convSnapshot = await convQuery.get();
-                    convSnapshot.forEach(doc => {
-                        conveyances.push({ id: doc.id, ...doc.data() });
-                    });
+                    convSnapshot.forEach(doc => conveyances.push({ id: doc.id, ...doc.data() }));
                 }
-                
                 if (reportFor === 'all' || reportFor === 'chandelling') {
-                    let chanQuery = db.collection('chandelling');
-                    
-                    // Apply date filter
-                    chanQuery = chanQuery.where('createdAt', '>=', startDate)
-                                         .where('createdAt', '<=', endDate);
-                    
+                    let chanQuery = db.collection('chandelling').where('createdAt', '>=', startDate).where('createdAt', '<=', endDate);
                     const chanSnapshot = await chanQuery.get();
-                    chanSnapshot.forEach(doc => {
-                        chandelling.push({ id: doc.id, ...doc.data() });
-                    });
+                    chanSnapshot.forEach(doc => chandelling.push({ id: doc.id, ...doc.data() }));
                 }
-                
                 if (reportFor === 'all' || reportFor === 'vaccination') {
-                    let vacQuery = db.collection('vaccination');
-                    
-                    // Apply date filter
-                    vacQuery = vacQuery.where('createdAt', '>=', startDate)
-                                       .where('createdAt', '<=', endDate);
-                    
+                    let vacQuery = db.collection('vaccination').where('createdAt', '>=', startDate).where('createdAt', '<=', endDate);
                     const vacSnapshot = await vacQuery.get();
-                    vacSnapshot.forEach(doc => {
-                        vaccination.push({ id: doc.id, ...doc.data() });
-                    });
+                    vacSnapshot.forEach(doc => vaccination.push({ id: doc.id, ...doc.data() }));
                 }
-                
-                // Generate report content
-                let reportHTML = `
-                    <h4 class="text-primary">${reportTitle}</h4>
-                    <p class="text-muted">Generated on ${new Date().toLocaleString()}</p>
-                    <hr>
-                `;
-                
+                let reportHTML = `<h4 class="text-primary">${reportTitle}</h4><p class="text-muted">Generated on ${new Date().toLocaleString()}</p><hr>`;
                 if (conveyances.length > 0) {
-                    reportHTML += `
-                        <h5><i class="bi bi-truck"></i> Conveyance Inspections</h5>
-                        <div class="table-responsive">
-                            <table class="table table-sm">
-                                <thead>
-                                    <tr>
-                                        <th>Control No</th>
-                                        <th>Date</th>
-                                        <th>Type</th>
-                                        <th>Conveyance</th>
-                                        <th>Company</th>
-                                        <th>Officer In Charge</th>
-                                        <th>Expiry Date</th>
-                                        <th>Payment Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                    `;
-                    
+                    reportHTML += `<h5><i class="bi bi-truck"></i> Conveyance Inspections</h5><div class="table-responsive"><table class="table table-sm"><thead><tr><th>Control No</th><th>Date</th><th>Type</th><th>Conveyance</th><th>Company</th><th>Officer In Charge</th><th>Expiry Date</th><th>Payment Status</th></tr></thead><tbody>`;
                     conveyances.forEach(conv => {
-                        reportHTML += `
-                            <tr>
-                                <td>${conv.controlNo}</td>
-                                <td>${conv.inspectionDate ? new Date(conv.inspectionDate).toLocaleDateString() : 'N/A'}</td>
-                                <td>${conv.convType}</td>
-                                <td>${conv.convName}</td>
-                                <td>${conv.companyName || 'N/A'}</td>
-                                <td>${conv.officerInCharge || 'N/A'}</td>
-                                <td>${conv.expiryDate || 'N/A'}</td>
-                                <td>${conv.paymentStatus === 'paid' ? '<span class="paid-label">Paid</span>' : '<span class="unpaid-label">Unpaid</span>'}</td>
-                            </tr>
-                        `;
+                        reportHTML += `<tr><td>${conv.controlNo}</td><td>${conv.inspectionDate ? new Date(conv.inspectionDate).toLocaleDateString() : 'N/A'}</td><td>${conv.convType}</td><td>${conv.convName}</td><td>${conv.companyName || 'N/A'}</td><td>${conv.officerInCharge || 'N/A'}</td><td>${conv.expiryDate || 'N/A'}</td><td>${conv.paymentStatus === 'paid' ? '<span class="paid-label">Paid</span>' : '<span class="unpaid-label">Unpaid</span>'}</td></tr>`;
                     });
-                    
-                    reportHTML += `
-                                </tbody>
-                                <tfoot>
-                                    <tr class="table-light">
-                                        <td colspan="7"><strong>Total Conveyances:</strong></td>
-                                        <td><strong>${conveyances.length}</strong></td>
-                                    </tr>
-                                </tfoot>
-                            </table>
-                        </div>
-                    `;
+                    reportHTML += `</tbody><tfoot><tr class="table-light"><td colspan="7"><strong>Total Conveyances:</strong></td><td><strong>${conveyances.length}</strong></td></tr></tfoot></table></div>`;
                 }
-                
                 if (chandelling.length > 0) {
-                    reportHTML += `
-                        <h5 class="mt-4"><i class="bi bi-ship"></i> Ship Chandelling</h5>
-                        <div class="table-responsive">
-                            <table class="table table-sm">
-                                <thead>
-                                    <tr>
-                                        <th>Control No</th>
-                                        <th>Date</th>
-                                        <th>Company</th>
-                                        <th>Ship Name</th>
-                                        <th>Officer In Charge</th>
-                                        <th>Expiry Date</th>
-                                        <th>Payment Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                    `;
-                    
+                    reportHTML += `<h5 class="mt-4"><i class="bi bi-ship"></i> Ship Chandelling</h5><div class="table-responsive"><table class="table table-sm"><thead><tr><th>Control No</th><th>Date</th><th>Company</th><th>Ship Name</th><th>Officer In Charge</th><th>Expiry Date</th><th>Payment Status</th></tr></thead><tbody>`;
                     chandelling.forEach(chan => {
-                        reportHTML += `
-                            <tr>
-                                <td>${chan.controlNo}</td>
-                                <td>${chan.date ? new Date(chan.date).toLocaleDateString() : 'N/A'}</td>
-                                <td>${chan.company}</td>
-                                <td>${chan.shipName}</td>
-                                <td>${chan.officerInCharge || 'N/A'}</td>
-                                <td>${chan.expiryDate || 'N/A'}</td>
-                                <td>${chan.paymentStatus === 'paid' ? '<span class="paid-label">Paid</span>' : '<span class="unpaid-label">Unpaid</span>'}</td>
-                            </tr>
-                        `;
+                        reportHTML += `<tr><td>${chan.controlNo}</td><td>${chan.date ? new Date(chan.date).toLocaleDateString() : 'N/A'}</td><td>${chan.company}</td><td>${chan.shipName}</td><td>${chan.officerInCharge || 'N/A'}</td><td>${chan.expiryDate || 'N/A'}</td><td>${chan.paymentStatus === 'paid' ? '<span class="paid-label">Paid</span>' : '<span class="unpaid-label">Unpaid</span>'}</td></tr>`;
                     });
-                    
-                    reportHTML += `
-                                </tbody>
-                                <tfoot>
-                                    <tr class="table-light">
-                                        <td colspan="6"><strong>Total Chandelling:</strong></td>
-                                        <td><strong>${chandelling.length}</strong></td>
-                                    </tr>
-                                </tfoot>
-                            </table>
-                        </div>
-                    `;
+                    reportHTML += `</tbody><tfoot><tr class="table-light"><td colspan="6"><strong>Total Chandelling:</strong></td><td><strong>${chandelling.length}</strong></td></tr></tfoot></table></div>`;
                 }
-                
                 if (vaccination.length > 0) {
-                    reportHTML += `
-                        <h5 class="mt-4"><i class="bi bi-shield-plus"></i> Vaccination Records</h5>
-                        <div class="table-responsive">
-                            <table class="table table-sm">
-                                <thead>
-                                    <tr>
-                                        <th>Control No</th>
-                                        <th>Officer In Charge</th>
-                                        <th>Expiry Date</th>
-                                        <th>Date Provided</th>
-                                        <th>Payment Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                    `;
-                    
+                    reportHTML += `<h5 class="mt-4"><i class="bi bi-shield-plus"></i> Vaccination Records</h5><div class="table-responsive"><table class="table table-sm"><thead><tr><th>Control No</th><th>Officer In Charge</th><th>Expiry Date</th><th>Date Provided</th><th>Payment Status</th></tr></thead><tbody>`;
                     vaccination.forEach(vac => {
-                        reportHTML += `
-                            <tr>
-                                <td>${vac.controlNo}</td>
-                                <td>${vac.officerInCharge}</td>
-                                <td>${vac.expiryDate || 'N/A'}</td>
-                                <td>${vac.dateProvided ? new Date(vac.dateProvided).toLocaleDateString() : 'N/A'}</td>
-                                <td>${vac.paymentStatus === 'paid' ? '<span class="paid-label">Paid</span>' : '<span class="unpaid-label">Unpaid</span>'}</td>
-                            </tr>
-                        `;
+                        reportHTML += `<tr><td>${vac.controlNo}</td><td>${vac.officerInCharge}</td><td>${vac.expiryDate || 'N/A'}</td><td>${vac.dateProvided ? new Date(vac.dateProvided).toLocaleDateString() : 'N/A'}</td><td>${vac.paymentStatus === 'paid' ? '<span class="paid-label">Paid</span>' : '<span class="unpaid-label">Unpaid</span>'}</td></tr>`;
                     });
-                    
-                    reportHTML += `
-                                </tbody>
-                                <tfoot>
-                                    <tr class="table-light">
-                                        <td colspan="4"><strong>Total Vaccination:</strong></td>
-                                        <td><strong>${vaccination.length}</strong></td>
-                                    </tr>
-                                </tfoot>
-                            </table>
-                        </div>
-                    `;
+                    reportHTML += `</tbody><tfoot><tr class="table-light"><td colspan="4"><strong>Total Vaccination:</strong></td><td><strong>${vaccination.length}</strong></td></tr></tfoot></table></div>`;
                 }
-                
                 if (conveyances.length === 0 && chandelling.length === 0 && vaccination.length === 0) {
-                    reportHTML += `
-                        <div class="text-center py-4">
-                            <i class="bi bi-file-earmark-x" style="font-size: 3rem; color: #ddd;"></i>
-                            <p class="text-muted mt-2">No records found for the selected criteria</p>
-                        </div>
-                    `;
+                    reportHTML += `<div class="text-center py-4"><i class="bi bi-file-earmark-x" style="font-size: 3rem; color: #ddd;"></i><p class="text-muted mt-2">No records found for the selected criteria</p></div>`;
                 } else {
                     const totalRecords = conveyances.length + chandelling.length + vaccination.length;
-                    
-                    reportHTML += `
-                        <div class="alert alert-info mt-4">
-                            <h6><i class="bi bi-graph-up"></i> Summary Report</h6>
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <p><strong>Total Conveyances:</strong> ${conveyances.length}</p>
-                                    <p><strong>Total Chandelling:</strong> ${chandelling.length}</p>
-                                    <p><strong>Total Vaccination:</strong> ${vaccination.length}</p>
-                                </div>
-                                <div class="col-md-4">
-                                    <p><strong>Total Records:</strong> ${totalRecords}</p>
-                                </div>
-                            </div>
-                        </div>
-                    `;
+                    reportHTML += `<div class="alert alert-info mt-4"><h6><i class="bi bi-graph-up"></i> Summary Report</h6><div class="row"><div class="col-md-4"><p><strong>Total Conveyances:</strong> ${conveyances.length}</p><p><strong>Total Chandelling:</strong> ${chandelling.length}</p><p><strong>Total Vaccination:</strong> ${vaccination.length}</p></div><div class="col-md-4"><p><strong>Total Records:</strong> ${totalRecords}</p></div></div></div>`;
                 }
-                
-                // Display report
                 document.getElementById('reportPreview').classList.add('d-none');
                 document.getElementById('reportContent').classList.remove('d-none');
                 document.getElementById('reportHeader').innerHTML = `<h4>${reportTitle}</h4>`;
                 document.getElementById('reportData').innerHTML = reportHTML;
-                
             } catch (error) {
                 console.error('Error generating report:', error);
                 alert('Error generating report. Please check the date range and try again.');
@@ -1899,41 +1744,12 @@
         function printReport() {
             const reportContent = document.getElementById('reportData').innerHTML;
             const reportHeader = document.getElementById('reportHeader').innerHTML;
-            
             const printWindow = window.open('', '_blank');
             printWindow.document.write(`
                 <!DOCTYPE html>
                 <html>
-                <head>
-                    <title>Port Health Report</title>
-                    <style>
-                        body { font-family: Arial, sans-serif; margin: 20px; }
-                        h4 { color: #2c3e50; margin-bottom: 10px; }
-                        table { width: 100%; border-collapse: collapse; margin: 10px 0; }
-                        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                        th { background-color: #f8f9fa; }
-                        .paid-label { color: #27ae60; font-weight: 600; }
-                        .unpaid-label { color: #e74c3c; font-weight: 600; }
-                        .alert { padding: 10px; border-radius: 5px; margin: 10px 0; }
-                        .alert-info { background: #d1ecf1; border: 1px solid #bee5eb; }
-                        @media print {
-                            body { margin: 0; padding: 20px; }
-                            .no-print { display: none; }
-                        }
-                    </style>
-                </head>
-                <body>
-                    ${reportHeader}
-                    ${reportContent}
-                    <div class="no-print" style="margin-top: 20px;">
-                        <button onclick="window.print()" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">
-                            Print Report
-                        </button>
-                        <button onclick="window.close()" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px;">
-                            Close
-                        </button>
-                    </div>
-                </body>
+                <head><title>Port Health Report</title><style>body{font-family:Arial,sans-serif;margin:20px;}h4{color:#2c3e50;}table{width:100%;border-collapse:collapse;margin:10px 0;}th,td{border:1px solid #ddd;padding:8px;text-align:left;}th{background:#f8f9fa;}.paid-label{color:#27ae60;font-weight:600;}.unpaid-label{color:#e74c3c;font-weight:600;}.alert{padding:10px;border-radius:5px;margin:10px 0;}.alert-info{background:#d1ecf1;border:1px solid #bee5eb;}@media print{body{margin:0;padding:20px;}.no-print{display:none;}}</style></head>
+                <body>${reportHeader}${reportContent}<div class="no-print" style="margin-top:20px;"><button onclick="window.print()" style="padding:10px 20px;background:#007bff;color:white;border:none;border-radius:5px;">Print Report</button><button onclick="window.close()" style="padding:10px 20px;background:#6c757d;color:white;border:none;border-radius:5px;margin-left:10px;">Close</button></div></body>
                 </html>
             `);
             printWindow.document.close();
